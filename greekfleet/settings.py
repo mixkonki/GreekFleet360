@@ -214,6 +214,11 @@ UNFOLD = {
                         "icon": "category",
                         "link": lambda request: "/admin/finance/expensecategory/",
                     },
+                    {
+                        "title": "Θέσεις Εργασίας",
+                        "icon": "work",
+                        "link": lambda request: "/admin/core/employeeposition/",
+                    },
                 ],
             },
             {
@@ -244,6 +249,11 @@ UNFOLD = {
                         "title": "Drivers",
                         "icon": "person",
                         "link": lambda request: "/admin/core/driverprofile/",
+                    },
+                    {
+                        "title": "Υπάλληλοι",
+                        "icon": "badge",
+                        "link": lambda request: "/admin/core/employee/",
                     },
                     {
                         "title": "Fuel Entries",

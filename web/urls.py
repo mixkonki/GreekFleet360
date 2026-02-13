@@ -22,4 +22,7 @@ urlpatterns = [
     path('finance/cost-center/<int:cost_center_id>/edit/', views.cost_center_edit, name='cost_center_edit'),
     path('finance/cost-center/<int:cost_center_id>/update/', views.cost_center_update, name='cost_center_update'),
     path('finance/cost-center/<int:cost_center_id>/delete/', views.cost_center_delete, name='cost_center_delete'),
+    path('finance/employee/create/', views.employee_create, name='employee_create'),
+    path('finance/employee/<int:employee_id>/edit/', views.employee_edit, name='employee_edit'),
+    path('finance/employee/<int:employee_id>/delete/', views.employee_delete, name='employee_delete'),
 ]

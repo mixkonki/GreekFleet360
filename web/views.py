@@ -242,11 +242,11 @@ def finance_settings(request):
     if not company:
         return redirect('/admin/core/company/add/')
     
-    # Get all company expenses
+    # Get all company expenses - ordered by family name for regroup to work correctly
     expenses = CompanyExpense.objects.filter(
         company=company,
         is_active=True
-    ).select_related('category', 'category__family', 'cost_center').order_by('category__family__display_order', 'start_date')
+    ).select_related('category', 'category__family', 'cost_center').order_by('category__family__name', '-created_at')
     
     # Get all cost centers with allocated costs
     cost_centers_qs = CostCenter.objects.filter(company=company, is_active=True).order_by('name')
@@ -628,6 +628,98 @@ def cost_center_delete(request, cost_center_id):
     
     cost_center = get_object_or_404(CostCenter, id=cost_center_id, company=company)
     cost_center.delete()
+    
+    # Return empty response for HTMX to remove the row
+    return HttpResponse('', status=200)
+
+
+@login_required
+def employee_create(request):
+    """
+    Return Employee Form Modal for Create (HTMX GET)
+    OR Handle Employee Create (HTMX POST)
+    """
+    try:
+        company = request.user.profile.company
+    except:
+        company = Company.objects.first()
+    
+    if request.method == 'POST':
+        from .forms import EmployeeForm
+        form = EmployeeForm(request.POST, company=company)
+        if form.is_valid():
+            employee = form.save(commit=False)
+            employee.company = company
+            employee.is_active = True
+            employee.save()
+            return redirect('web:finance_settings')
+        else:
+            context = {
+                'form': form,
+                'title': 'Προσθήκη Υπαλλήλου',
+            }
+            return render(request, 'partials/employee_form_modal.html', context)
+    else:
+        from .forms import EmployeeForm
+        form = EmployeeForm(company=company)
+        context = {
+            'form': form,
+            'title': 'Προσθήκη Υπαλλήλου',
+        }
+        return render(request, 'partials/employee_form_modal.html', context)
+
+
+@login_required
+def employee_edit(request, employee_id):
+    """
+    Return Employee Form Modal for Edit (HTMX GET)
+    OR Handle Employee Update (HTMX POST)
+    """
+    try:
+        company = request.user.profile.company
+    except:
+        company = Company.objects.first()
+    
+    employee = get_object_or_404(Employee, id=employee_id, company=company)
+    
+    if request.method == 'POST':
+        from .forms import EmployeeForm
+        form = EmployeeForm(request.POST, instance=employee, company=company)
+        if form.is_valid():
+            form.save()
+            return redirect('web:finance_settings')
+        else:
+            context = {
+                'form': form,
+                'title': 'Επεξεργασία Υπαλλήλου',
+                'employee_id': employee_id,
+            }
+            return render(request, 'partials/employee_form_modal.html', context)
+    else:
+        from .forms import EmployeeForm
+        form = EmployeeForm(instance=employee, company=company)
+        context = {
+            'form': form,
+            'title': 'Επεξεργασία Υπαλλήλου',
+            'employee_id': employee_id,
+        }
+        return render(request, 'partials/employee_form_modal.html', context)
+
+
+@login_required
+def employee_delete(request, employee_id):
+    """
+    Delete Employee (HTMX)
+    """
+    from django.http import HttpResponse
+    
+    try:
+        company = request.user.profile.company
+    except:
+        company = Company.objects.first()
+    
+    employee = get_object_or_404(Employee, id=employee_id, company=company)
+    employee.delete()
     
     # Return empty response for HTMX to remove the row
     return HttpResponse('', status=200)

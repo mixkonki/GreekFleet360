@@ -1,0 +1,80 @@
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+     x-data="{ show: true }"
+     x-show="show"
+     @click.self="show = false; document.getElementById('modal-container').innerHTML = ''">
+    
+    <!-- Modal Content -->
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 m-4" @click.stop>
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">
+                <i class="fas fa-user-plus text-blue-600 mr-2"></i>
+                {{ title }}
+            </h2>
+            <button @click="show = false; document.getElementById('modal-container').innerHTML = ''" 
+                    class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Form -->
+        <form method="post" action="{% if employee_id %}{% url 'web:employee_edit' employee_id %}{% else %}{% url 'web:employee_create' %}{% endif %}" class="space-y-4">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.first_name.label }}
+                    </label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.last_name.label }}
+                    </label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div>
+                <label for="{{ form.position.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.position.label }}
+                </label>
+                {{ form.position }}
+                {% if form.position.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.position.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div>
+                <label for="{{ form.assigned_vehicle.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.assigned_vehicle.label }}
+                </label>
+                {{ form.assigned_vehicle }}
+                <p class="text-xs text-gray-500 mt-1">Προαιρετικό - Συνδέστε τον υπάλληλο με όχημα</p>
+            </div>
+            
+            <!-- Actions -->
+            <div class="flex justify-end space-x-4 pt-4 border-t">
+                <button type="button" 
+                        @click="show = false; document.getElementById('modal-container').innerHTML = ''"
+                        class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                    Ακύρωση
+                </button>
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>
+                    {% if employee_id %}Ενημέρωση{% else %}Δημιουργία{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

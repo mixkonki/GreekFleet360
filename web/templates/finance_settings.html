@@ -347,6 +347,9 @@
                 <p class="text-sm text-gray-600 mt-1">{{ employees|length }} καταχωρημένοι υπάλληλοι</p>
             </div>
             <button 
+                hx-get="{% url 'web:employee_create' %}" 
+                hx-target="#modal-container"
+                hx-swap="innerHTML"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                 <i class="fas fa-plus mr-2"></i>
                 Προσθήκη Υπαλλήλου
@@ -399,10 +402,20 @@
                             {% endif %}
                         </td>
                         <td class="px-4 py-4 text-sm whitespace-nowrap">
-                            <button class="text-blue-600 hover:text-blue-900 mr-3">
+                            <button 
+                                hx-get="{% url 'web:employee_edit' employee.id %}" 
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML"
+                                class="text-blue-600 hover:text-blue-900 mr-3">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="text-red-600 hover:text-red-900">
+                            <button 
+                                hx-delete="{% url 'web:employee_delete' employee.id %}" 
+                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                hx-confirm="Διαγραφή υπαλλήλου;"
+                                hx-target="closest tr"
+                                hx-swap="outerHTML"
+                                class="text-red-600 hover:text-red-900">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -412,7 +425,11 @@
                         <td colspan="5" class="px-6 py-12 text-center text-gray-500">
                             <i class="fas fa-users text-4xl mb-2"></i>
                             <p class="mb-4">Δεν υπάρχουν καταχωρημένοι υπάλληλοι</p>
-                            <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            <button 
+                                hx-get="{% url 'web:employee_create' %}" 
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML"
+                                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                 <i class="fas fa-plus mr-2"></i>
                                 Προσθέστε τον πρώτο υπάλληλο
                             </button>

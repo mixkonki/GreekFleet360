@@ -169,6 +169,33 @@ class ServiceLogForm(TailwindFormMixin, forms.ModelForm):
         self.fields['total_cost'].required = False
 
 
+class EmployeeForm(TailwindFormMixin, forms.ModelForm):
+    """
+    Form for Employee (Frontend - no company field)
+    """
+    class Meta:
+        model = Employee
+        fields = ['first_name', 'last_name', 'position', 'assigned_vehicle']
+    
+    def __init__(self, *args, **kwargs):
+        # Extract company from kwargs if provided
+        company = kwargs.pop('company', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filter assigned_vehicle queryset by company
+        if company:
+            self.fields['assigned_vehicle'].queryset = VehicleAsset.objects.filter(
+                company=company,
+                status='ACTIVE'
+            )
+        elif self.instance and self.instance.pk and self.instance.company:
+            # If editing existing employee, use its company
+            self.fields['assigned_vehicle'].queryset = VehicleAsset.objects.filter(
+                company=self.instance.company,
+                status='ACTIVE'
+            )
+
+
 class VehicleFinancialForm(TailwindFormMixin, forms.ModelForm):
     """
     Form for editing Vehicle Financial Profile
