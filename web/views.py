@@ -382,9 +382,9 @@ def expense_create(request):
         expense_id = request.POST.get('expense_id')
         if expense_id:
             expense = get_object_or_404(CompanyExpense, id=expense_id, company=company)
-            form = CompanyExpenseForm(request.POST, instance=expense)
+            form = CompanyExpenseForm(request.POST, instance=expense, company=company)
         else:
-            form = CompanyExpenseForm(request.POST)
+            form = CompanyExpenseForm(request.POST, company=company)
         
         if form.is_valid():
             expense = form.save(commit=False)
@@ -394,6 +394,19 @@ def expense_create(request):
             
             # Return updated expenses list
             return redirect('web:finance_settings')
+        else:
+            # Log form errors for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Form validation failed: {form.errors}")
+            print(f"FORM ERRORS: {form.errors}")  # Console output for immediate debugging
+            
+            # Return to form with errors
+            context = {
+                'form': form,
+                'title': 'Επεξεργασία Εξόδου' if expense_id else 'Προσθήκη Εξόδου',
+            }
+            return render(request, 'partials/expense_form_modal.html', context)
     
     return redirect('web:finance_settings')
 
