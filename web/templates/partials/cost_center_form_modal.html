@@ -19,7 +19,7 @@
         </div>
         
         <!-- Form -->
-        <form method="post" action="{% url 'web:cost_center_create' %}" class="space-y-4">
+        <form method="post" action="{% if cost_center_id %}{% url 'web:cost_center_update' cost_center_id %}{% else %}{% url 'web:cost_center_create' %}{% endif %}" class="space-y-4">
             {% csrf_token %}
             
             <div>
@@ -49,7 +49,7 @@
                 <button type="submit" 
                         class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
                     <i class="fas fa-save mr-2"></i>
-                    Δημιουργία
+                    {% if cost_center_id %}Ενημέρωση{% else %}Δημιουργία{% endif %}
                 </button>
             </div>
         </form>

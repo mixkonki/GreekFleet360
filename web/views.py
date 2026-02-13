@@ -455,8 +455,10 @@ def expense_create(request):
 @login_required
 def expense_delete(request, expense_id):
     """
-    Delete Recurring Expense
+    Delete Recurring Expense (HTMX)
     """
+    from django.http import HttpResponse
+    
     try:
         company = request.user.profile.company
     except:
@@ -465,7 +467,8 @@ def expense_delete(request, expense_id):
     expense = get_object_or_404(CompanyExpense, id=expense_id, company=company)
     expense.delete()
     
-    return redirect('web:finance_settings')
+    # Return empty response for HTMX to remove the row
+    return HttpResponse('', status=200)
 
 
 @login_required
@@ -517,3 +520,73 @@ def cost_center_create(request):
             return redirect('web:finance_settings')
     
     return redirect('web:finance_settings')
+
+
+@login_required
+def cost_center_edit(request, cost_center_id):
+    """
+    Return Cost Center Edit Form Modal (HTMX)
+    """
+    try:
+        company = request.user.profile.company
+    except:
+        company = Company.objects.first()
+    
+    cost_center = get_object_or_404(CostCenter, id=cost_center_id, company=company)
+    form = CostCenterForm(instance=cost_center)
+    
+    context = {
+        'form': form,
+        'title': 'Επεξεργασία Κέντρου Κόστους',
+        'cost_center_id': cost_center_id,
+    }
+    
+    return render(request, 'partials/cost_center_form_modal.html', context)
+
+
+@login_required
+def cost_center_update(request, cost_center_id):
+    """
+    Update Cost Center (HTMX Modal POST)
+    """
+    from django.db import IntegrityError
+    from django.contrib import messages
+    
+    try:
+        company = request.user.profile.company
+    except:
+        company = Company.objects.first()
+    
+    cost_center = get_object_or_404(CostCenter, id=cost_center_id, company=company)
+    
+    if request.method == 'POST':
+        form = CostCenterForm(request.POST, instance=cost_center)
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, 'Το Κέντρο Κόστους ενημερώθηκε επιτυχώς!')
+            except IntegrityError:
+                messages.error(request, f'Το Κέντρο Κόστους "{cost_center.name}" υπάρχει ήδη για αυτή την εταιρεία.')
+            
+            return redirect('web:finance_settings')
+    
+    return redirect('web:finance_settings')
+
+
+@login_required
+def cost_center_delete(request, cost_center_id):
+    """
+    Delete Cost Center (HTMX)
+    """
+    from django.http import HttpResponse
+    
+    try:
+        company = request.user.profile.company
+    except:
+        company = Company.objects.first()
+    
+    cost_center = get_object_or_404(CostCenter, id=cost_center_id, company=company)
+    cost_center.delete()
+    
+    # Return empty response for HTMX to remove the row
+    return HttpResponse('', status=200)

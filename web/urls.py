@@ -19,4 +19,7 @@ urlpatterns = [
     path('finance/expense/<int:expense_id>/delete/', views.expense_delete, name='expense_delete'),
     path('finance/cost-center/form/', views.cost_center_form, name='cost_center_form'),
     path('finance/cost-center/create/', views.cost_center_create, name='cost_center_create'),
+    path('finance/cost-center/<int:cost_center_id>/edit/', views.cost_center_edit, name='cost_center_edit'),
+    path('finance/cost-center/<int:cost_center_id>/update/', views.cost_center_update, name='cost_center_update'),
+    path('finance/cost-center/<int:cost_center_id>/delete/', views.cost_center_delete, name='cost_center_delete'),
 ]
