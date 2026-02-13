@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ order.customer_name }} - GreekFleet 360{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'web:order_list' %}" class="text-blue-600 hover:text-blue-800 mb-2 inline-block">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Επιστροφή στη Λίστα
+    </a>
+    <h1 class="text-3xl font-bold text-gray-800">Εντολή Μεταφοράς #{{ order.id }}</h1>
+    <p class="text-gray-600 mt-1">{{ order.customer_name }} - {{ order.date|date:"d/m/Y" }}</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Left Column: Order Details -->
+    <div class="space-y-6">
+        <!-- Customer & Route Info -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Πληροφορίες Εντολής</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="text-sm font-medium text-gray-600">Πελάτης</label>
+                    <p class="text-lg font-semibold text-gray-900">{{ order.customer_name }}</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Αφετηρία</label>
+                        <p class="text-gray-900">
+                            <i class="fas fa-map-marker-alt text-green-500 mr-1"></i>
+                            {{ order.origin }}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Προορισμός</label>
+                        <p class="text-gray-900">
+                            <i class="fas fa-map-marker-alt text-red-500 mr-1"></i>
+                            {{ order.destination }}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Απόσταση</label>
+                        <p class="text-gray-900">{{ order.distance_km }} km</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Διάρκεια</label>
+                        <p class="text-gray-900">
+                            {% if order.duration_hours %}
+                                {{ order.duration_hours }} ώρες
+                            {% else %}
+                                -
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Όχημα</label>
+                        <p class="text-gray-900 font-semibold">
+                            {% if order.assigned_vehicle %}
+                                {{ order.assigned_vehicle.plate }}
+                            {% else %}
+                                <span class="text-gray-400">Δεν έχει ανατεθεί</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Οδηγός</label>
+                        <p class="text-gray-900">
+                            {% if order.assigned_driver %}
+                                {{ order.assigned_driver.user.get_full_name }}
+                            {% else %}
+                                <span class="text-gray-400">Δεν έχει ανατεθεί</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Profitability Analysis -->
+        {% if profitability and not profitability.error %}
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Ανάλυση Κερδοφορίας</h2>
+            
+            <!-- Traffic Light Indicator -->
+            <div class="mb-6 p-4 rounded-lg {% if profitability.profit >= 0 %}bg-green-50 border-2 border-green-500{% else %}bg-red-50 border-2 border-red-500{% endif %}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium {% if profitability.profit >= 0 %}text-green-800{% else %}text-red-800{% endif %}">
+                            {% if profitability.profit >= 0 %}
+                                Κερδοφόρα Εντολή
+                            {% else %}
+                                Ζημιογόνα Εντολή
+                            {% endif %}
+                        </p>
+                        <p class="text-3xl font-bold {% if profitability.profit >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if profitability.profit >= 0 %}+{% endif %}€{{ profitability.profit }}
+                        </p>
+                        <p class="text-sm {% if profitability.profit >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            Περιθώριο: {{ profitability.profit_margin }}%
+                        </p>
+                    </div>
+                    <div class="text-5xl">
+                        {% if profitability.profit >= 0 %}
+                            <i class="fas fa-check-circle text-green-500"></i>
+                        {% else %}
+                            <i class="fas fa-exclamation-triangle text-red-500"></i>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cost Breakdown -->
+            <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Σταθερά Κόστη</span>
+                    <span class="font-semibold">€{{ profitability.fixed_cost }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Γενικά Έξοδα</span>
+                    <span class="font-semibold">€{{ profitability.overhead_cost }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Μεταβλητά Κόστη</span>
+                    <span class="font-semibold">€{{ profitability.variable_cost }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Διόδια</span>
+                    <span class="font-semibold">€{{ profitability.tolls_cost }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Πορθμείο</span>
+                    <span class="font-semibold">€{{ profitability.ferry_cost }}</span>
+                </div>
+                <div class="border-t pt-2 flex justify-between font-bold">
+                    <span>Συνολικό Κόστος</span>
+                    <span>€{{ profitability.total_cost }}</span>
+                </div>
+                <div class="flex justify-between font-bold text-green-600">
+                    <span>Έσοδα</span>
+                    <span>€{{ profitability.revenue }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Right Column: Map -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Χάρτης Διαδρομής</h2>
+        <div id="map" class="w-full h-[600px] rounded-lg"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize map
+    const map = L.map('map').setView([38.0, 23.7], 7);
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Geocode origin and destination
+    const origin = "{{ order.origin|escapejs }}";
+    const destination = "{{ order.destination|escapejs }}";
+    
+    async function geocode(address) {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}, Greece`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data && data.length > 0) {
+            return {
+                lat: parseFloat(data[0].lat),
+                lon: parseFloat(data[0].lon)
+            };
+        }
+        return null;
+    }
+    
+    async function drawRoute() {
+        try {
+            // Geocode both locations
+            const originCoords = await geocode(origin);
+            const destCoords = await geocode(destination);
+            
+            if (!originCoords || !destCoords) {
+                alert('Δεν ήταν δυνατή η εύρεση των συντεταγμένων για την αφετηρία ή τον προορισμό.');
+                return;
+            }
+            
+            // Add markers
+            const greenIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+            
+            const redIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+            
+            L.marker([originCoords.lat, originCoords.lon], {icon: greenIcon})
+                .addTo(map)
+                .bindPopup(`<b>Αφετηρία</b><br>${origin}`);
+            
+            L.marker([destCoords.lat, destCoords.lon], {icon: redIcon})
+                .addTo(map)
+                .bindPopup(`<b>Προορισμός</b><br>${destination}`);
+            
+            // Get route from OSRM
+            const routeUrl = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=full&geometries=geojson`;
+            const routeResponse = await fetch(routeUrl);
+            const routeData = await routeResponse.json();
+            
+            if (routeData.routes && routeData.routes.length > 0) {
+                const route = routeData.routes[0];
+                
+                // Draw route on map
+                L.geoJSON(route.geometry, {
+                    style: {
+                        color: '#3B82F6',
+                        weight: 5,
+                        opacity: 0.7
+                    }
+                }).addTo(map);
+                
+                // Fit map to route bounds
+                const bounds = L.latLngBounds([
+                    [originCoords.lat, originCoords.lon],
+                    [destCoords.lat, destCoords.lon]
+                ]);
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        } catch (error) {
+            console.error('Error drawing route:', error);
+            alert('Σφάλμα κατά τη φόρτωση της διαδρομής.');
+        }
+    }
+    
+    // Draw route when page loads
+    drawRoute();
+</script>
+{% endblock %}

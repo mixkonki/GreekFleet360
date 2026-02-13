@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - GreekFleet 360{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'web:dashboard' %}" class="text-blue-600 hover:text-blue-800 mb-2 inline-block">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Επιστροφή στο Dashboard
+    </a>
+    <h1 class="text-3xl font-bold text-gray-800">{{ title }}</h1>
+</div>
+
+<div class="bg-white rounded-lg shadow-md p-6 max-w-4xl">
+    <form method="post" class="space-y-6" x-data="{ liters: 0, costPerLiter: 0 }">
+        {% csrf_token %}
+        
+        <!-- Vehicle & Driver -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label for="{{ form.vehicle.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.vehicle.label }}
+                </label>
+                {{ form.vehicle }}
+                {% if form.vehicle.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.vehicle.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div>
+                <label for="{{ form.driver.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.driver.label }}
+                </label>
+                {{ form.driver }}
+            </div>
+            
+            <div>
+                <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.date.label }}
+                </label>
+                {{ form.date }}
+                {% if form.date.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.date.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Fuel Station -->
+        <div>
+            <label for="{{ form.fuel_station_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                {{ form.fuel_station_name.label }}
+            </label>
+            {{ form.fuel_station_name }}
+        </div>
+        
+        <!-- Fuel Details -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label for="{{ form.liters.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.liters.label }}
+                </label>
+                <input 
+                    type="number" 
+                    step="0.01"
+                    name="{{ form.liters.name }}"
+                    id="{{ form.liters.id_for_label }}"
+                    x-model="liters"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                {% if form.liters.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.liters.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div>
+                <label for="{{ form.cost_per_liter.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.cost_per_liter.label }}
+                </label>
+                <input 
+                    type="number" 
+                    step="0.001"
+                    name="{{ form.cost_per_liter.name }}"
+                    id="{{ form.cost_per_liter.id_for_label }}"
+                    x-model="costPerLiter"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                {% if form.cost_per_liter.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.cost_per_liter.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div>
+                <label for="{{ form.total_cost.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.total_cost.label }}
+                </label>
+                <input 
+                    type="number" 
+                    step="0.01"
+                    name="{{ form.total_cost.name }}"
+                    id="{{ form.total_cost.id_for_label }}"
+                    x-model="(liters * costPerLiter).toFixed(2)"
+                    readonly
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none"
+                >
+            </div>
+        </div>
+        
+        <!-- Odometer & Full Tank -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="{{ form.odometer_reading.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.odometer_reading.label }}
+                </label>
+                {{ form.odometer_reading }}
+                {% if form.odometer_reading.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.odometer_reading.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="flex items-center pt-8">
+                {{ form.is_full_tank }}
+                <label for="{{ form.is_full_tank.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                    {{ form.is_full_tank.label }}
+                </label>
+                <span class="ml-2 text-xs text-gray-500">({{ form.is_full_tank.help_text }})</span>
+            </div>
+        </div>
+        
+        <!-- AdBlue (Collapsible) -->
+        <div x-data="{ showAdBlue: false }">
+            <button 
+                type="button"
+                @click="showAdBlue = !showAdBlue"
+                class="text-blue-600 hover:text-blue-800 text-sm font-medium mb-2"
+            >
+                <i class="fas fa-plus-circle mr-1"></i>
+                Προσθήκη AdBlue
+            </button>
+            
+            <div x-show="showAdBlue" x-cloak class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div>
+                    <label for="{{ form.adblue_liters.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.adblue_liters.label }}
+                    </label>
+                    {{ form.adblue_liters }}
+                </div>
+                
+                <div>
+                    <label for="{{ form.adblue_cost.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.adblue_cost.label }}
+                    </label>
+                    {{ form.adblue_cost }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notes -->
+        <div>
+            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                {{ form.notes.label }}
+            </label>
+            {{ form.notes }}
+        </div>
+        
+        <!-- Hidden company field -->
+        <div class="hidden">
+            {{ form.company }}
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex justify-end space-x-4">
+            <a href="{% url 'web:dashboard' %}" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                Ακύρωση
+            </a>
+            <button type="submit" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-save mr-2"></i>
+                Αποθήκευση
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

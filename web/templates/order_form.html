@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - GreekFleet 360{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'web:order_list' %}" class="text-blue-600 hover:text-blue-800 mb-2 inline-block">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Επιστροφή στη Λίστα
+    </a>
+    <h1 class="text-3xl font-bold text-gray-800">{{ title }}</h1>
+</div>
+
+<div class="bg-white rounded-lg shadow-md p-6 max-w-4xl">
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Customer & Date -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="{{ form.customer_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.customer_name.label }}
+                </label>
+                {{ form.customer_name }}
+                {% if form.customer_name.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.customer_name.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div>
+                <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.date.label }}
+                </label>
+                {{ form.date }}
+                {% if form.date.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.date.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Route -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="{{ form.origin.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-map-marker-alt text-green-500 mr-1"></i>
+                    {{ form.origin.label }}
+                </label>
+                {{ form.origin }}
+                {% if form.origin.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.origin.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div>
+                <label for="{{ form.destination.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-map-marker-alt text-red-500 mr-1"></i>
+                    {{ form.destination.label }}
+                </label>
+                {{ form.destination }}
+                {% if form.destination.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.destination.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Distance & Price -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="{{ form.distance_km.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.distance_km.label }}
+                </label>
+                {{ form.distance_km }}
+                {% if form.distance_km.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.distance_km.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div>
+                <label for="{{ form.agreed_price.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.agreed_price.label }}
+                </label>
+                {{ form.agreed_price }}
+                {% if form.agreed_price.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.agreed_price.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Assignment -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label for="{{ form.assigned_vehicle.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.assigned_vehicle.label }}
+                </label>
+                {{ form.assigned_vehicle }}
+            </div>
+            
+            <div>
+                <label for="{{ form.assigned_driver.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.assigned_driver.label }}
+                </label>
+                {{ form.assigned_driver }}
+            </div>
+            
+            <div>
+                <label for="{{ form.duration_hours.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.duration_hours.label }}
+                </label>
+                {{ form.duration_hours }}
+            </div>
+        </div>
+        
+        <!-- Additional Costs -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label for="{{ form.tolls_cost.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.tolls_cost.label }}
+                </label>
+                {{ form.tolls_cost }}
+            </div>
+            
+            <div>
+                <label for="{{ form.ferry_cost.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.ferry_cost.label }}
+                </label>
+                {{ form.ferry_cost }}
+            </div>
+            
+            <div>
+                <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.status.label }}
+                </label>
+                {{ form.status }}
+            </div>
+        </div>
+        
+        <!-- Notes -->
+        <div>
+            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                {{ form.notes.label }}
+            </label>
+            {{ form.notes }}
+        </div>
+        
+        <!-- Hidden company field -->
+        <div class="hidden">
+            {{ form.company }}
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex justify-end space-x-4">
+            <a href="{% url 'web:order_list' %}" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                Ακύρωση
+            </a>
+            <button type="submit" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-save mr-2"></i>
+                Αποθήκευση
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

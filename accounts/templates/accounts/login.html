@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Σύνδεση - GreekFleet 360</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body class="bg-gradient-to-br from-blue-500 to-blue-700 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+        <!-- Logo & Title -->
+        <div class="text-center mb-8">
+            <div class="inline-block bg-blue-100 rounded-full p-4 mb-4">
+                <i class="fas fa-truck text-4xl text-blue-600"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800">GreekFleet 360</h1>
+            <p class="text-gray-600 mt-2">Σύνδεση στο Λογαριασμό σας</p>
+        </div>
+        
+        <!-- Login Form -->
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                    <p class="text-red-700 text-sm">{{ form.non_field_errors.0 }}</p>
+                </div>
+            {% endif %}
+            
+            <div>
+                <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-user mr-2 text-gray-400"></i>
+                    Όνομα Χρήστη
+                </label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div>
+                <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-lock mr-2 text-gray-400"></i>
+                    Κωδικός
+                </label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.password.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                <i class="fas fa-sign-in-alt mr-2"></i>
+                Σύνδεση
+            </button>
+        </form>
+        
+        <!-- Sign Up Link -->
+        <div class="mt-6 text-center">
+            <p class="text-gray-600 text-sm">
+                Δεν έχετε λογαριασμό;
+                <a href="{% url 'accounts:signup' %}" class="text-blue-600 hover:text-blue-800 font-semibold">
+                    Εγγραφή
+                </a>
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="mt-8 pt-6 border-t border-gray-200 text-center">
+            <p class="text-xs text-gray-500">
+                © 2026 GreekFleet 360. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

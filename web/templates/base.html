@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GreekFleet 360{% endblock %}</title>
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Leaflet.js for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-100" x-data="{ sidebarOpen: true }">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside 
+            class="bg-gray-900 text-white w-64 flex-shrink-0 transition-all duration-300"
+            :class="{ '-ml-64': !sidebarOpen }"
+        >
+            <div class="p-4">
+                <h1 class="text-2xl font-bold text-blue-400">GreekFleet 360</h1>
+                <p class="text-xs text-gray-400 mt-1">Holistic FMS & TMS</p>
+            </div>
+            
+            <nav class="mt-8">
+                <a href="{% url 'web:dashboard' %}" class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors {% if request.resolver_match.url_name == 'dashboard' %}bg-gray-800 text-white border-l-4 border-blue-500{% endif %}">
+                    <i class="fas fa-tachometer-alt mr-3"></i>
+                    <span>Dashboard</span>
+                </a>
+                
+                <a href="{% url 'web:vehicle_list' %}" class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors {% if request.resolver_match.url_name == 'vehicle_list' %}bg-gray-800 text-white border-l-4 border-blue-500{% endif %}">
+                    <i class="fas fa-truck mr-3"></i>
+                    <span>Στόλος</span>
+                </a>
+                
+                <a href="{% url 'web:order_list' %}" class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors {% if 'order' in request.resolver_match.url_name %}bg-gray-800 text-white border-l-4 border-blue-500{% endif %}">
+                    <i class="fas fa-route mr-3"></i>
+                    <span>Εντολές Μεταφοράς</span>
+                </a>
+                
+                <a href="{% url 'web:finance_settings' %}" class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors {% if request.resolver_match.url_name == 'finance_settings' %}bg-gray-800 text-white border-l-4 border-blue-500{% endif %}">
+                    <i class="fas fa-chart-line mr-3"></i>
+                    <span>Οικονομικά</span>
+                </a>
+                
+                {% if user.is_superuser %}
+                <a href="/admin/" class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+                    <i class="fas fa-cog mr-3"></i>
+                    <span>Admin Panel</span>
+                </a>
+                {% endif %}
+            </nav>
+            
+            <div class="absolute bottom-0 w-64 p-4 bg-gray-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium">{{ user.get_full_name|default:user.username }}</p>
+                            <p class="text-xs text-gray-400">{{ user.email }}</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'accounts:logout' %}" 
+                       class="text-gray-400 hover:text-white transition-colors"
+                       title="Αποσύνδεση">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Bar -->
+            <header class="bg-white shadow-sm z-10">
+                <div class="flex items-center justify-between px-6 py-4">
+                    <button 
+                        @click="sidebarOpen = !sidebarOpen"
+                        class="text-gray-500 hover:text-gray-700 focus:outline-none"
+                    >
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <input 
+                                type="search" 
+                                placeholder="Αναζήτηση..." 
+                                class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        
+                        <button class="relative text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Modal Container for HTMX -->
+    <div id="modal-container"></div>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
