@@ -40,7 +40,7 @@ class CompanyExpenseForm(TailwindFormMixin, forms.ModelForm):
         fields = [
             'category', 'cost_center', 'expense_type', 'periodicity',
             'amount', 'start_date', 'end_date',
-            'is_amortized', 'invoice_number', 'description'
+            'is_amortized', 'distribute_to_all_centers', 'invoice_number', 'description'
         ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 2}),

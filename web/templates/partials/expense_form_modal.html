@@ -33,11 +33,23 @@
                     {% endif %}
                 </div>
                 
-                <div>
+                <div x-data="{ distributeAll: {{ form.distribute_to_all_centers.value|default:'false'|lower }} }">
                     <label for="{{ form.cost_center.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
                         {{ form.cost_center.label }}
                     </label>
                     {{ form.cost_center }}
+                    <div class="mt-2 flex items-center space-x-2">
+                        <input type="checkbox" 
+                               name="distribute_to_all_centers" 
+                               id="id_distribute_to_all_centers"
+                               x-model="distributeAll"
+                               @change="if(distributeAll) { document.getElementById('{{ form.cost_center.id_for_label }}').value = ''; document.getElementById('{{ form.cost_center.id_for_label }}').disabled = true; } else { document.getElementById('{{ form.cost_center.id_for_label }}').disabled = false; }"
+                               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="id_distribute_to_all_centers" class="text-xs text-gray-600 cursor-pointer">
+                            {{ form.distribute_to_all_centers.label }}
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">{{ form.distribute_to_all_centers.help_text }}</p>
                 </div>
             </div>
             

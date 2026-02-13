@@ -248,8 +248,32 @@ def finance_settings(request):
         is_active=True
     ).select_related('category', 'category__family', 'cost_center').order_by('category__family__display_order', 'start_date')
     
-    # Get all cost centers
-    cost_centers = CostCenter.objects.filter(company=company).order_by('name')
+    # Get all cost centers with allocated costs
+    cost_centers_qs = CostCenter.objects.filter(company=company, is_active=True).order_by('name')
+    active_center_count = cost_centers_qs.count()
+    
+    # Calculate allocated costs per cost center
+    cost_centers_with_allocation = []
+    for center in cost_centers_qs:
+        direct_cost = Decimal('0.00')
+        allocated_cost = Decimal('0.00')
+        
+        for exp in expenses:
+            if exp.distribute_to_all_centers and active_center_count > 0:
+                # Distribute equally across all active centers
+                allocated_cost += exp.monthly_impact / Decimal(str(active_center_count))
+            elif exp.cost_center and exp.cost_center.id == center.id:
+                # Direct assignment to this center
+                direct_cost += exp.monthly_impact
+        
+        cost_centers_with_allocation.append({
+            'center': center,
+            'direct_cost': direct_cost,
+            'allocated_cost': allocated_cost,
+            'total_cost': direct_cost + allocated_cost
+        })
+    
+    cost_centers = cost_centers_with_allocation
     
     # Calculate totals using the new property methods
     total_annual = sum([exp.annual_impact for exp in expenses])

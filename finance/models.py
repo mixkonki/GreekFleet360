@@ -123,6 +123,13 @@ class CompanyExpense(models.Model):
         verbose_name="Κέντρο Κόστους"
     )
     
+    # Cost Allocation
+    distribute_to_all_centers = models.BooleanField(
+        default=False,
+        verbose_name="Επιμερισμός σε όλα τα κέντρα",
+        help_text="Αν επιλεγεί, το κόστος θα μοιραστεί ισόποσα σε όλα τα ενεργά κέντρα κόστους"
+    )
+    
     # Expense Type & Periodicity
     expense_type = models.CharField(
         max_length=20,
