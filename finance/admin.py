@@ -14,6 +14,16 @@ class ExpenseFamilyAdmin(ModelAdmin):
     list_editable = ['display_order']
     search_fields = ['name', 'description']
     ordering = ['display_order', 'name']
+    
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        # Add helpful text for icon field
+        form.base_fields['icon'].help_text = format_html(
+            'Εισάγετε το όνομα του εικονιδίου από το Font Awesome (π.χ. truck, building). '
+            'Βρείτε τη λίστα εδώ: <a href="https://fontawesome.com/search?o=r&m=free" target="_blank" '
+            'style="color: #0066cc; text-decoration: underline;">Font Awesome Icons</a>'
+        )
+        return form
 
 
 @admin.register(ExpenseCategory)
