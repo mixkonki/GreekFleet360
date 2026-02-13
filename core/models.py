@@ -264,6 +264,66 @@ class Moto(VehicleAsset):
         verbose_name_plural = "Μοτοσυκλέτες"
 
 
+class EmployeePosition(models.Model):
+    """
+    Employee Position/Role
+    """
+    title = models.CharField(max_length=100, unique=True, verbose_name="Τίτλος Θέσης")
+    is_driver_role = models.BooleanField(default=False, verbose_name="Θέση Οδηγού")
+    
+    class Meta:
+        verbose_name = "Θέση Εργασίας"
+        verbose_name_plural = "Θέσεις Εργασίας"
+        ordering = ['title']
+    
+    def __str__(self):
+        return self.title
+
+
+class Employee(models.Model):
+    """
+    Employee Model - Minimalist personnel tracking
+    """
+    first_name = models.CharField(max_length=100, verbose_name="Όνομα")
+    last_name = models.CharField(max_length=100, verbose_name="Επώνυμο")
+    position = models.ForeignKey(
+        EmployeePosition,
+        on_delete=models.PROTECT,
+        related_name='employees',
+        verbose_name="Θέση"
+    )
+    assigned_vehicle = models.ForeignKey(
+        'VehicleAsset',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_employees',
+        verbose_name="Συνδεδεμένο Όχημα"
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='employees',
+        verbose_name="Εταιρεία"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Ενεργός")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Υπάλληλος"
+        verbose_name_plural = "Υπάλληλοι"
+        ordering = ['last_name', 'first_name']
+    
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} - {self.position.title}"
+    
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+
 class DriverProfile(models.Model):
     """
     Driver Profile linked to Django User

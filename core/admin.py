@@ -4,7 +4,7 @@ Django Admin Configuration for GreekFleet 360
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 from polymorphic.admin import PolymorphicParentModelAdmin, PolymorphicChildModelAdmin
-from .models import Company, VehicleAsset, Truck, Bus, Taxi, PassengerCar, Moto, DriverProfile
+from .models import Company, VehicleAsset, Truck, Bus, Taxi, PassengerCar, Moto, DriverProfile, EmployeePosition, Employee
 
 # Customize Admin Site
 # Note: Unfold handles site customization through settings.py
@@ -62,6 +62,31 @@ class VehicleAssetAdmin(PolymorphicParentModelAdmin):
     search_fields = ['plate', 'vin', 'make', 'model']
 
 
+@admin.register(EmployeePosition)
+class EmployeePositionAdmin(ModelAdmin):
+    list_display = ['title', 'is_driver_role']
+    list_filter = ['is_driver_role']
+    search_fields = ['title']
+    ordering = ['title']
+
+
+@admin.register(Employee)
+class EmployeeAdmin(ModelAdmin):
+    list_display = ['full_name', 'position', 'assigned_vehicle', 'company', 'is_active']
+    list_filter = ['company', 'position', 'is_active']
+    search_fields = ['first_name', 'last_name']
+    ordering = ['last_name', 'first_name']
+    
+    fieldsets = (
+        ('Βασικές Πληροφορίες', {
+            'fields': ('first_name', 'last_name', 'position', 'company')
+        }),
+        ('Ανάθεση', {
+            'fields': ('assigned_vehicle', 'is_active')
+        }),
+    )
+
+
 @admin.register(DriverProfile)
 class DriverProfileAdmin(ModelAdmin):
     list_display = ['user', 'license_number', 'company', 'license_categories', 'is_active']
@@ -83,5 +108,3 @@ class DriverProfileAdmin(ModelAdmin):
             'fields': ('hire_date', 'is_active', 'notes')
         }),
     )
-
-

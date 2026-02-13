@@ -4,6 +4,7 @@ Tailwind CSS styled forms
 """
 from django import forms
 from finance.models import RecurringExpense, TransportOrder, ExpenseCategory, CostCenter
+from core.models import Employee
 from operations.models import FuelEntry, ServiceLog
 from core.models import VehicleAsset
 
@@ -38,7 +39,7 @@ class CompanyExpenseForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = RecurringExpense  # Using alias for backward compatibility
         fields = [
-            'category', 'cost_center', 'expense_type', 'periodicity',
+            'category', 'cost_center', 'employee', 'expense_type', 'periodicity',
             'amount', 'start_date', 'end_date',
             'is_amortized', 'distribute_to_all_centers', 'invoice_number', 'description'
         ]
@@ -59,9 +60,17 @@ class CompanyExpenseForm(TailwindFormMixin, forms.ModelForm):
                 company=company,
                 is_active=True
             )
+            self.fields['employee'].queryset = Employee.objects.filter(
+                company=company,
+                is_active=True
+            )
         elif self.instance and self.instance.pk and self.instance.company:
             # If editing existing expense, use its company
             self.fields['cost_center'].queryset = CostCenter.objects.filter(
+                company=self.instance.company,
+                is_active=True
+            )
+            self.fields['employee'].queryset = Employee.objects.filter(
                 company=self.instance.company,
                 is_active=True
             )

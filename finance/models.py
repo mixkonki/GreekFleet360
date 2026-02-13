@@ -130,6 +130,16 @@ class CompanyExpense(models.Model):
         help_text="Αν επιλεγεί, το κόστος θα μοιραστεί ισόποσα σε όλα τα ενεργά κέντρα κόστους"
     )
     
+    # Employee Link
+    employee = models.ForeignKey(
+        'core.Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='expenses',
+        verbose_name="Υπάλληλος"
+    )
+    
     # Expense Type & Periodicity
     expense_type = models.CharField(
         max_length=20,

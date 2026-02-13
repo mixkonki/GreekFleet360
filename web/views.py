@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from core.models import VehicleAsset, Company
+from core.models import VehicleAsset, Company, Employee
 from finance.models import TransportOrder, CompanyExpense, CostCenter
 from finance.services import CostCalculator
 from operations.models import FuelEntry, ServiceLog
@@ -329,9 +329,13 @@ def finance_settings(request):
     # Get all vehicles for cost profile table
     vehicles = VehicleAsset.objects.filter(company=company).select_related('company')
     
+    # Get all employees
+    employees = Employee.objects.filter(company=company).select_related('position', 'assigned_vehicle').order_by('last_name', 'first_name')
+    
     context = {
         'expenses': expenses,
         'cost_centers': cost_centers,
+        'employees': employees,
         'total_annual': total_annual,
         'total_monthly': total_monthly,
         'monthly_breakdown': monthly_breakdown,
