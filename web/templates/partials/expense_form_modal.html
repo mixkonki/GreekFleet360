@@ -43,6 +43,22 @@
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
+                    <label for="{{ form.expense_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.expense_type.label }}
+                    </label>
+                    {{ form.expense_type }}
+                </div>
+                
+                <div>
+                    <label for="{{ form.periodicity.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.periodicity.label }}
+                    </label>
+                    {{ form.periodicity }}
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                     <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
                         {{ form.amount.label }}
                     </label>
@@ -53,10 +69,10 @@
                 </div>
                 
                 <div>
-                    <label for="{{ form.frequency.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        {{ form.frequency.label }}
+                    <label for="{{ form.invoice_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.invoice_number.label }}
                     </label>
-                    {{ form.frequency }}
+                    {{ form.invoice_number }}
                 </div>
             </div>
             
@@ -81,6 +97,14 @@
                     {{ form.description.label }}
                 </label>
                 {{ form.description }}
+            </div>
+            
+            <div class="flex items-center space-x-2 p-4 bg-purple-50 rounded-lg">
+                {{ form.is_amortized }}
+                <label for="{{ form.is_amortized.id_for_label }}" class="text-sm font-medium text-gray-700 cursor-pointer">
+                    {{ form.is_amortized.label }}
+                    <span class="text-xs text-gray-500 block mt-1">{{ form.is_amortized.help_text }}</span>
+                </label>
             </div>
             
             <!-- Actions -->
