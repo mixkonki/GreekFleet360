@@ -22,6 +22,11 @@
         <form method="post" action="{% url 'web:expense_create' %}" class="space-y-4">
             {% csrf_token %}
             
+            <!-- Hidden field for expense ID when editing -->
+            {% if expense_id %}
+            <input type="hidden" name="expense_id" value="{{ expense_id }}">
+            {% endif %}
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">

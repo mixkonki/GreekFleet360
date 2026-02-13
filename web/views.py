@@ -419,15 +419,28 @@ def expense_form(request):
     if expense_id:
         expense = get_object_or_404(CompanyExpense, id=expense_id, company=company)
         form = CompanyExpenseForm(instance=expense, company=company)
+        
+        # Format dates for HTML5 date inputs (YYYY-MM-DD)
+        if expense.start_date:
+            form.initial['start_date'] = expense.start_date.strftime('%Y-%m-%d')
+        if expense.end_date:
+            form.initial['end_date'] = expense.end_date.strftime('%Y-%m-%d')
+        
         title = 'Επεξεργασία Εξόδου'
+        
+        context = {
+            'form': form,
+            'title': title,
+            'expense_id': expense_id,
+        }
     else:
         form = CompanyExpenseForm(company=company)
         title = 'Προσθήκη Εξόδου'
-    
-    context = {
-        'form': form,
-        'title': title,
-    }
+        
+        context = {
+            'form': form,
+            'title': title,
+        }
     
     return render(request, 'partials/expense_form_modal.html', context)
 
