@@ -252,15 +252,55 @@ def finance_settings(request):
     cost_centers = CostCenter.objects.filter(company=company).order_by('name')
     
     # Calculate totals using the new property methods
-    total_monthly = sum([exp.monthly_impact for exp in expenses])
     total_annual = sum([exp.annual_impact for exp in expenses])
     
-    # Get fleet size and calculate hourly rate
+    # Get fleet size
     fleet_size = company.vehicles.filter(status='ACTIVE').count()
-    working_days_per_year = 252
-    hours_per_day = 8
-    total_working_hours = working_days_per_year * hours_per_day * fleet_size if fleet_size > 0 else 1
-    hourly_rate = total_annual / Decimal(str(total_working_hours))
+    
+    # Calculate hourly rate: total_annual / (365 * 24) / max(fleet_size, 1)
+    hours_per_year = 365 * 24
+    hourly_rate = total_annual / Decimal(str(hours_per_year)) / Decimal(str(max(fleet_size, 1)))
+    
+    # Calculate monthly breakdown for current year
+    from datetime import date
+    current_year = timezone.now().year
+    monthly_breakdown = []
+    
+    for month in range(1, 13):
+        # Get first and last day of month
+        if month == 12:
+            start_of_month = date(current_year, month, 1)
+            end_of_month = date(current_year + 1, 1, 1) - timedelta(days=1)
+        else:
+            start_of_month = date(current_year, month, 1)
+            end_of_month = date(current_year, month + 1, 1) - timedelta(days=1)
+        
+        month_cost = Decimal('0.00')
+        
+        for exp in expenses:
+            # Check if expense is active during this month
+            is_active_in_month = (
+                exp.start_date <= end_of_month and
+                (exp.end_date is None or exp.end_date >= start_of_month)
+            )
+            
+            if is_active_in_month:
+                if exp.expense_type == 'ONE_OFF':
+                    # One-off expenses only count in their start month
+                    if exp.start_date.year == current_year and exp.start_date.month == month:
+                        month_cost += exp.amount
+                else:
+                    # Recurring expenses use monthly_impact
+                    month_cost += exp.monthly_impact
+        
+        monthly_breakdown.append({
+            'month': month,
+            'month_name': date(current_year, month, 1).strftime('%B'),
+            'cost': month_cost
+        })
+    
+    # Calculate average monthly cost
+    total_monthly = sum([m['cost'] for m in monthly_breakdown]) / Decimal('12.0')
     
     # Get all vehicles for cost profile table
     vehicles = VehicleAsset.objects.filter(company=company).select_related('company')
@@ -270,6 +310,7 @@ def finance_settings(request):
         'cost_centers': cost_centers,
         'total_annual': total_annual,
         'total_monthly': total_monthly,
+        'monthly_breakdown': monthly_breakdown,
         'hourly_rate': hourly_rate,
         'fleet_size': fleet_size,
         'vehicles': vehicles,

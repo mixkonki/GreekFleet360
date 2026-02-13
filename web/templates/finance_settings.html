@@ -16,9 +16,9 @@
 
 <!-- KPI Cards -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md p-6 text-white">
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md p-6 text-white" x-data="{ showMonths: false }">
         <div class="flex items-center justify-between">
-            <div>
+            <div class="flex-1">
                 <p class="text-sm opacity-90 mb-1">Μηνιαία Έξοδα</p>
                 <p class="text-3xl font-bold">€{{ total_monthly|floatformat:2 }}</p>
                 <p class="text-xs opacity-75 mt-1">Μέσος όρος</p>
@@ -26,6 +26,17 @@
             <div class="text-5xl opacity-20">
                 <i class="fas fa-calendar-alt"></i>
             </div>
+        </div>
+        <button @click="showMonths = !showMonths" class="mt-3 text-xs underline opacity-90 hover:opacity-100">
+            <i class="fas fa-list mr-1"></i>Προβολή ανά μήνα
+        </button>
+        <div x-show="showMonths" x-transition class="mt-3 bg-white bg-opacity-20 rounded-lg p-3 max-h-48 overflow-y-auto">
+            {% for month in monthly_breakdown %}
+            <div class="flex justify-between text-xs py-1 border-b border-white border-opacity-20">
+                <span>{{ month.month_name }}</span>
+                <span class="font-semibold">€{{ month.cost|floatformat:2 }}</span>
+            </div>
+            {% endfor %}
         </div>
     </div>
     
@@ -40,6 +51,10 @@
                 <i class="fas fa-chart-line"></i>
             </div>
         </div>
+        <div class="mt-3 pt-3 border-t border-white border-opacity-30">
+            <p class="text-xs opacity-75">Μέσος Όρος/Μήνα</p>
+            <p class="text-lg font-semibold">€{{ total_monthly|floatformat:2 }}</p>
+        </div>
     </div>
     
     <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-md p-6 text-white">
@@ -47,11 +62,14 @@
             <div>
                 <p class="text-sm opacity-90 mb-1">Ωριαία Επιβάρυνση</p>
                 <p class="text-3xl font-bold">€{{ hourly_rate|floatformat:2 }}</p>
-                <p class="text-xs opacity-75 mt-1">Ανά όχημα</p>
+                <p class="text-xs opacity-75 mt-1">Ανά όχημα ({{ fleet_size }} οχήματα)</p>
             </div>
             <div class="text-5xl opacity-20">
                 <i class="fas fa-calculator"></i>
             </div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-white border-opacity-30">
+            <p class="text-xs opacity-75">Φόρμουλα: Ετήσιο / (365×24) / Στόλος</p>
         </div>
     </div>
 </div>
