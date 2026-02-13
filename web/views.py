@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from core.models import VehicleAsset, Company
-from finance.models import TransportOrder, CompanyExpense
+from finance.models import TransportOrder, CompanyExpense, CostCenter
 from finance.services import CostCalculator
 from operations.models import FuelEntry, ServiceLog
 from .forms import CompanyExpenseForm, CostCenterForm, TransportOrderForm, FuelEntryForm
@@ -248,9 +248,12 @@ def finance_settings(request):
         is_active=True
     ).select_related('category', 'category__family', 'cost_center').order_by('category__family__display_order', 'start_date')
     
-    # Calculate totals (simplified for now - will use period-based calculation later)
-    total_annual = sum([exp.amount * 12 for exp in expenses])  # Temporary calculation
-    total_monthly = total_annual / 12 if total_annual > 0 else Decimal('0.00')
+    # Get all cost centers
+    cost_centers = CostCenter.objects.filter(company=company).order_by('name')
+    
+    # Calculate totals using the new property methods
+    total_monthly = sum([exp.monthly_impact for exp in expenses])
+    total_annual = sum([exp.annual_impact for exp in expenses])
     
     # Get fleet size and calculate hourly rate
     fleet_size = company.vehicles.filter(status='ACTIVE').count()
@@ -264,6 +267,7 @@ def finance_settings(request):
     
     context = {
         'expenses': expenses,
+        'cost_centers': cost_centers,
         'total_annual': total_annual,
         'total_monthly': total_monthly,
         'hourly_rate': hourly_rate,

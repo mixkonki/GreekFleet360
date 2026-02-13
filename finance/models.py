@@ -96,6 +96,8 @@ class CompanyExpense(models.Model):
     
     PERIODICITY_CHOICES = [
         ('MONTHLY', 'Μηνιαίο'),
+        ('QUARTERLY', 'Τριμηνιαίο'),
+        ('BIANNUAL', 'Εξαμηνιαίο'),
         ('YEARLY', 'Ετήσιο'),
         ('NONE', 'Εφάπαξ'),
     ]
@@ -155,8 +157,8 @@ class CompanyExpense(models.Model):
     # Amortization
     is_amortized = models.BooleanField(
         default=False,
-        verbose_name="Αποσβέσιμο",
-        help_text="Αν True, το κόστος κατανέμεται ημερησίως στο διάστημα start_date - end_date"
+        verbose_name="Κατανομή σε μήνες",
+        help_text="π.χ. Ένα ετήσιο έξοδο 120€ θα υπολογίζεται ως 10€/μήνα"
     )
     
     # Invoice
@@ -185,6 +187,50 @@ class CompanyExpense(models.Model):
     
     def __str__(self):
         return f"{self.category.name} - €{self.amount} ({self.start_date})"
+    
+    @property
+    def monthly_impact(self):
+        """
+        Calculate monthly impact of this expense
+        
+        Returns:
+            Decimal: Monthly cost impact
+        """
+        if self.expense_type == 'ONE_OFF':
+            return Decimal('0.00')  # Extraordinary one-off costs don't affect regular monthly run-rate
+        
+        if self.periodicity == 'MONTHLY':
+            return self.amount
+        elif self.periodicity == 'QUARTERLY':
+            return self.amount / Decimal('3.0')
+        elif self.periodicity == 'BIANNUAL':
+            return self.amount / Decimal('6.0')
+        elif self.periodicity == 'YEARLY':
+            return self.amount / Decimal('12.0')
+        
+        return Decimal('0.00')
+    
+    @property
+    def annual_impact(self):
+        """
+        Calculate annual impact of this expense
+        
+        Returns:
+            Decimal: Annual cost impact
+        """
+        if self.expense_type == 'ONE_OFF':
+            return self.amount  # One-off hits the annual budget once
+        
+        if self.periodicity == 'MONTHLY':
+            return self.amount * 12
+        elif self.periodicity == 'QUARTERLY':
+            return self.amount * 4
+        elif self.periodicity == 'BIANNUAL':
+            return self.amount * 2
+        elif self.periodicity == 'YEARLY':
+            return self.amount
+        
+        return Decimal('0.00')
     
     def get_daily_cost(self):
         """
