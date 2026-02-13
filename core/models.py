@@ -37,6 +37,18 @@ class Company(models.Model):
         verbose_name="Τύπος Επιχείρησης"
     )
     
+    # Transport Type (for accounting purposes)
+    TRANSPORT_TYPES = [
+        ('FREIGHT', 'Εμπορευματικές Μεταφορές'),
+        ('PASSENGER', 'Επιβατικές Μεταφορές'),
+    ]
+    transport_type = models.CharField(
+        max_length=20,
+        choices=TRANSPORT_TYPES,
+        default='FREIGHT',
+        verbose_name="Τύπος Μεταφορών"
+    )
+    
     is_active = models.BooleanField(default=True, verbose_name="Ενεργή")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -308,6 +320,29 @@ class Employee(models.Model):
     )
     is_active = models.BooleanField(default=True, verbose_name="Ενεργός")
     
+    # Salary & Cost Data
+    monthly_gross_salary = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Μικτός Μηνιαίος Μισθός (€)"
+    )
+    employer_contributions_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.22'),
+        validators=[MinValueValidator(Decimal('0.00')), MaxValueValidator(Decimal('1.00'))],
+        verbose_name="Ποσοστό Εργοδοτικών Εισφορών",
+        help_text="Π.χ. 0.22 για 22%"
+    )
+    available_hours_per_year = models.IntegerField(
+        default=1936,
+        validators=[MinValueValidator(1)],
+        verbose_name="Διαθέσιμες Ώρες/Έτος",
+        help_text="1936 ώρες = 11 μήνες × 22 ημέρες × 8 ώρες"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -322,6 +357,20 @@ class Employee(models.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def total_annual_cost(self):
+        """
+        Calculate total annual cost including 14 salaries and employer contributions
+        
+        Returns:
+            Decimal: Total annual cost
+        """
+        # 14 salaries (12 months + 2 bonuses in Greece)
+        annual_gross = self.monthly_gross_salary * 14
+        # Add employer contributions (e.g., 22%)
+        total_cost = annual_gross * (Decimal('1.00') + self.employer_contributions_rate)
+        return total_cost
 
 
 class DriverProfile(models.Model):

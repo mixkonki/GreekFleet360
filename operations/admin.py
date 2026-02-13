@@ -3,7 +3,7 @@ Django Admin Configuration for Operations App
 """
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from .models import FuelEntry, ServiceLog, IncidentReport
+from .models import FuelEntry, ServiceLog, IncidentReport, Vehicle
 
 
 @admin.register(FuelEntry)
@@ -104,3 +104,43 @@ class IncidentReportAdmin(ModelAdmin):
         updated = queryset.update(is_resolved=True)
         self.message_user(request, f'{updated} συμβάντα επισημάνθηκαν ως επιλυμένα.')
     mark_as_resolved.short_description = "Επισήμανση ως επιλυμένα"
+
+
+@admin.register(Vehicle)
+class VehicleAdmin(ModelAdmin):
+    list_display = [
+        'license_plate', 'make', 'model', 'vehicle_type', 'company',
+        'get_annual_depreciation', 'get_total_fixed_costs', 'get_hourly_rate'
+    ]
+    list_filter = ['company', 'vehicle_type']
+    search_fields = ['license_plate', 'make', 'model']
+    ordering = ['license_plate']
+    
+    fieldsets = (
+        ('Βασικές Πληροφορίες', {
+            'fields': ('license_plate', 'make', 'model', 'vehicle_type', 'company')
+        }),
+        ('Χωρητικότητα', {
+            'fields': ('gross_weight_kg', 'payload_capacity_kg', 'seats')
+        }),
+        ('Σταθερά Κόστη - Περιουσιακά Στοιχεία', {
+            'fields': ('purchase_value', 'residual_value', 'depreciation_years')
+        }),
+        ('Σταθερά Κόστη - Λειτουργικά', {
+            'fields': ('annual_insurance', 'annual_road_tax', 'available_hours_per_year')
+        }),
+    )
+    
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def get_annual_depreciation(self, obj):
+        return f"€{obj.annual_depreciation:,.2f}"
+    get_annual_depreciation.short_description = "Ετήσια Απόσβεση"
+    
+    def get_total_fixed_costs(self, obj):
+        return f"€{obj.total_annual_fixed_costs:,.2f}"
+    get_total_fixed_costs.short_description = "Σύνολο Σταθερών Κοστών"
+    
+    def get_hourly_rate(self, obj):
+        return f"€{obj.fixed_cost_per_hour:,.2f}/ώρα"
+    get_hourly_rate.short_description = "Ωριαίο Κόστος"

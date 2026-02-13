@@ -287,3 +287,143 @@ class IncidentReport(models.Model):
     
     def __str__(self):
         return f"{self.vehicle.plate} - {self.get_type_display()} - {self.date}"
+
+
+class Vehicle(models.Model):
+    """
+    Simplified Vehicle Model for Fixed Cost Accounting
+    Variable costs (fuel, maintenance) are calculated from log entries
+    """
+    VEHICLE_TYPES = [
+        ('TRUCK', 'Φορτηγό'),
+        ('BUS', 'Λεωφορείο'),
+        ('VAN', 'Van'),
+        ('CAR', 'Αυτοκίνητο'),
+    ]
+    
+    # Basic Info
+    license_plate = models.CharField(max_length=20, unique=True, verbose_name="Πινακίδα")
+    make = models.CharField(max_length=50, verbose_name="Μάρκα")
+    model = models.CharField(max_length=50, verbose_name="Μοντέλο")
+    vehicle_type = models.CharField(
+        max_length=20,
+        choices=VEHICLE_TYPES,
+        verbose_name="Τύπος Οχήματος"
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='fleet_vehicles',
+        verbose_name="Εταιρεία"
+    )
+    
+    # Capacity
+    gross_weight_kg = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Μικτό Βάρος (kg)"
+    )
+    payload_capacity_kg = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Ωφέλιμο Φορτίο (kg)"
+    )
+    seats = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        verbose_name="Θέσεις Επιβατών"
+    )
+    
+    # Fixed Costs - Assets
+    purchase_value = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Αξία Αγοράς (€)"
+    )
+    residual_value = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Υπολειμματική Αξία (€)"
+    )
+    depreciation_years = models.IntegerField(
+        default=5,
+        validators=[MinValueValidator(1)],
+        verbose_name="Έτη Απόσβεσης"
+    )
+    
+    # Fixed Costs - Operational
+    annual_insurance = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Ετήσια Ασφάλιση (€)"
+    )
+    annual_road_tax = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Ετήσια Τέλη Κυκλοφορίας (€)"
+    )
+    available_hours_per_year = models.IntegerField(
+        default=1936,
+        validators=[MinValueValidator(1)],
+        verbose_name="Διαθέσιμες Ώρες/Έτος",
+        help_text="1936 ώρες = 11 μήνες × 22 ημέρες × 8 ώρες"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Όχημα (Λογιστικό)"
+        verbose_name_plural = "Οχήματα (Λογιστικά)"
+        ordering = ['license_plate']
+    
+    def __str__(self):
+        return f"{self.license_plate} - {self.make} {self.model}"
+    
+    @property
+    def annual_depreciation(self):
+        """
+        Calculate annual depreciation
+        
+        Returns:
+            Decimal: Annual depreciation amount
+        """
+        if self.depreciation_years <= 0:
+            return Decimal('0.00')
+        
+        return (self.purchase_value - self.residual_value) / Decimal(str(self.depreciation_years))
+    
+    @property
+    def total_annual_fixed_costs(self):
+        """
+        Calculate total annual fixed costs
+        
+        Returns:
+            Decimal: Sum of depreciation, insurance, and road tax
+        """
+        return self.annual_depreciation + self.annual_insurance + self.annual_road_tax
+    
+    @property
+    def fixed_cost_per_hour(self):
+        """
+        Calculate fixed cost per hour
+        
+        Returns:
+            Decimal: Fixed cost per available hour
+        """
+        if self.available_hours_per_year <= 0:
+            return Decimal('0.00')
+        
+        return self.total_annual_fixed_costs / Decimal(str(self.available_hours_per_year))
