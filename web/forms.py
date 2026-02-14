@@ -4,9 +4,8 @@ Tailwind CSS styled forms
 """
 from django import forms
 from finance.models import RecurringExpense, TransportOrder, ExpenseCategory, CostCenter
-from core.models import Employee
+from core.models import Employee, Company, VehicleAsset
 from operations.models import FuelEntry, ServiceLog, Vehicle
-from core.models import VehicleAsset
 
 
 class TailwindFormMixin:
@@ -310,8 +309,6 @@ class CompanyForm(TailwindFormMixin, forms.ModelForm):
     """
     Form for editing Company details
     """
-    from core.models import Company
-    
     class Meta:
         model = Company
         fields = ['name', 'transport_type', 'tax_id', 'address', 'phone', 'email']
