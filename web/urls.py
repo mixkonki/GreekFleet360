@@ -32,6 +32,11 @@ urlpatterns = [
     path('fleet/<int:vehicle_id>/edit/', views.fleet_update, name='fleet_update'),
     path('fleet/<int:vehicle_id>/delete/', views.fleet_delete, name='fleet_delete'),
     
-    # Company Settings
+    # Settings Hub
+    path('settings/', views.settings_hub, name='settings_hub'),
     path('settings/company/', views.company_edit, name='company_edit'),
+    path('settings/users/create/', views.user_create, name='user_create'),
+    path('settings/users/<int:user_id>/delete/', views.user_delete, name='user_delete'),
+    path('settings/categories/create/', views.category_create, name='category_create'),
+    path('settings/categories/<int:category_id>/delete/', views.category_delete, name='category_delete'),
 ]

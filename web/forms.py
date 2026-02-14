@@ -3,9 +3,11 @@ Django Forms for GreekFleet 360 Web Interface
 Tailwind CSS styled forms
 """
 from django import forms
+from django.contrib.auth.models import User
 from finance.models import RecurringExpense, TransportOrder, ExpenseCategory, CostCenter
 from core.models import Employee, Company, VehicleAsset
 from operations.models import FuelEntry, ServiceLog, Vehicle
+from accounts.models import UserProfile
 
 
 class TailwindFormMixin:
@@ -326,4 +328,55 @@ class CompanyForm(TailwindFormMixin, forms.ModelForm):
             'address': 'Διεύθυνση',
             'phone': 'Τηλέφωνο',
             'email': 'Email',
+        }
+
+
+class CompanyUserForm(TailwindFormMixin, forms.ModelForm):
+    """
+    Form for creating/editing Company Users
+    """
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'placeholder': 'Κωδικός πρόσβασης'}),
+        required=False,
+        label='Κωδικός Πρόσβασης',
+        help_text='Αφήστε κενό για να κρατήσετε τον υπάρχοντα κωδικό'
+    )
+    role = forms.ChoiceField(
+        choices=UserProfile.ROLE_CHOICES,
+        label='Ρόλος',
+        widget=forms.Select()
+    )
+    
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'username']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'placeholder': 'π.χ. Γιώργος'}),
+            'last_name': forms.TextInput(attrs={'placeholder': 'π.χ. Παπαδόπουλος'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'π.χ. user@company.gr'}),
+            'username': forms.TextInput(attrs={'placeholder': 'π.χ. gpapadopoulos'}),
+        }
+        labels = {
+            'first_name': 'Όνομα',
+            'last_name': 'Επώνυμο',
+            'email': 'Email',
+            'username': 'Username',
+        }
+
+
+class ExpenseCategoryForm(TailwindFormMixin, forms.ModelForm):
+    """
+    Form for creating custom Expense Categories
+    """
+    class Meta:
+        model = ExpenseCategory
+        fields = ['family', 'name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'π.χ. Ενοίκιο Γραφείου'}),
+            'description': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Περιγραφή κατηγορίας'}),
+        }
+        labels = {
+            'family': 'Οικογένεια Εξόδων',
+            'name': 'Όνομα Κατηγορίας',
+            'description': 'Περιγραφή',
         }

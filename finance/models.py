@@ -36,7 +36,7 @@ class ExpenseFamily(models.Model):
 class ExpenseCategory(models.Model):
     """
     Master Data: Expense Categories
-    System-wide categories for recurring expenses
+    Supports both system-wide defaults and tenant-specific custom categories
     """
     family = models.ForeignKey(
         ExpenseFamily,
@@ -44,21 +44,33 @@ class ExpenseCategory(models.Model):
         related_name='categories',
         verbose_name="Οικογένεια"
     )
-    name = models.CharField(max_length=100, unique=True, verbose_name="Κατηγορία")
+    name = models.CharField(max_length=100, verbose_name="Κατηγορία")
     description = models.TextField(blank=True, verbose_name="Περιγραφή")
     is_system_default = models.BooleanField(
         default=False,
         verbose_name="Προεπιλεγμένη Κατηγορία",
         help_text="Κατηγορίες που δημιουργούνται αυτόματα από το σύστημα"
     )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='custom_categories',
+        verbose_name="Εταιρεία",
+        help_text="Αν NULL, είναι προεπιλεγμένη κατηγορία. Αν έχει εταιρεία, είναι προσαρμοσμένη."
+    )
     
     class Meta:
         verbose_name = "Κατηγορία Εξόδου"
         verbose_name_plural = "Κατηγορίες Εξόδων"
         ordering = ['family', 'name']
+        unique_together = [['company', 'name']]  # Unique per company
     
     def __str__(self):
-        return f"{self.family.name} - {self.name}"
+        if self.company:
+            return f"{self.family.name} - {self.name} ({self.company.name})"
+        return f"{self.family.name} - {self.name} [System]"
 
 
 class CostCenter(models.Model):

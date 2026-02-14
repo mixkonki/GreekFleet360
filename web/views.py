@@ -9,11 +9,13 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from core.models import VehicleAsset, Company, Employee
-from finance.models import TransportOrder, CompanyExpense, CostCenter
+from finance.models import TransportOrder, CompanyExpense, CostCenter, ExpenseCategory
 from finance.services import CostCalculator
 from operations.models import FuelEntry, ServiceLog, Vehicle
-from .forms import CompanyExpenseForm, CostCenterForm, TransportOrderForm, FuelEntryForm, VehicleForm
+from accounts.models import UserProfile
+from .forms import CompanyExpenseForm, CostCenterForm, TransportOrderForm, FuelEntryForm, VehicleForm, CompanyForm
 
 
 @login_required
@@ -875,13 +877,56 @@ def fleet_delete(request, vehicle_id):
 
 
 # ============================================================================
-# COMPANY SETTINGS VIEW
+# SETTINGS HUB - Comprehensive Settings Dashboard
 # ============================================================================
+
+@login_required
+def settings_hub(request):
+    """
+    Settings Hub with 3 tabs: Company, Users, Financial
+    """
+    from django.contrib.auth.models import User
+    from finance.models import ExpenseFamily
+    
+    try:
+        company = request.user.userprofile.company
+    except:
+        company = Company.objects.first()
+    
+    if not company:
+        from django.contrib import messages
+        messages.error(request, 'Δεν έχετε ανατεθεί σε εταιρεία. Επικοινωνήστε με τον διαχειριστή.')
+        return redirect('web:dashboard')
+    
+    # Company Form
+    company_form = CompanyForm(instance=company)
+    
+    # Users
+    team_members = User.objects.filter(userprofile__company=company).select_related('userprofile')
+    
+    # Cost Centers
+    cost_centers = CostCenter.objects.filter(company=company, is_active=True).order_by('name')
+    
+    # Expense Categories
+    default_categories = ExpenseCategory.objects.filter(company__isnull=True).select_related('family').order_by('family__display_order', 'name')
+    custom_categories = ExpenseCategory.objects.filter(company=company).select_related('family').order_by('family__display_order', 'name')
+    
+    context = {
+        'company': company,
+        'company_form': company_form,
+        'team_members': team_members,
+        'cost_centers': cost_centers,
+        'default_categories': default_categories,
+        'custom_categories': custom_categories,
+    }
+    
+    return render(request, 'web/settings_hub.html', context)
+
 
 @login_required
 def company_edit(request):
     """
-    Edit Company Settings
+    Edit Company Settings (POST handler for settings hub)
     """
     from .forms import CompanyForm
     
@@ -901,13 +946,140 @@ def company_edit(request):
             form.save()
             from django.contrib import messages
             messages.success(request, 'Οι ρυθμίσεις της εταιρείας ενημερώθηκαν επιτυχώς!')
-            return redirect('web:company_edit')
-    else:
-        form = CompanyForm(instance=company)
+            return redirect('web:settings_hub')
     
-    context = {
-        'form': form,
-        'company': company,
-    }
+    return redirect('web:settings_hub')
+
+
+@login_required
+def user_create(request):
+    """
+    Create new Company User
+    """
+    from .forms import CompanyUserForm
+    from django.contrib import messages
     
-    return render(request, 'web/company_form.html', context)
+    try:
+        company = request.user.userprofile.company
+    except:
+        company = Company.objects.first()
+    
+    if request.method == 'POST':
+        form = CompanyUserForm(request.POST)
+        if form.is_valid():
+            # Create user
+            user = form.save(commit=False)
+            password = form.cleaned_data.get('password')
+            if password:
+                user.set_password(password)
+            else:
+                user.set_password(User.objects.make_random_password())
+            user.save()
+            
+            # Create UserProfile
+            role = form.cleaned_data.get('role')
+            UserProfile.objects.create(
+                user=user,
+                company=company,
+                role=role
+            )
+            
+            messages.success(request, f'Ο χρήστης {user.username} δημιουργήθηκε επιτυχώς!')
+            return redirect('web:settings_hub')
+        else:
+            messages.error(request, 'Σφάλμα στη φόρμα. Ελέγξτε τα πεδία.')
+    
+    return redirect('web:settings_hub')
+
+
+@login_required
+def user_delete(request, user_id):
+    """
+    Delete Company User (with security check)
+    """
+    from django.http import HttpResponse
+    from django.contrib import messages
+    
+    try:
+        company = request.user.userprofile.company
+    except:
+        company = Company.objects.first()
+    
+    try:
+        user = User.objects.get(id=user_id)
+        
+        # Security Check: Ensure user belongs to same company
+        if user.userprofile.company != company:
+            messages.error(request, 'Δεν έχετε δικαίωμα διαγραφής αυτού του χρήστη.')
+            return HttpResponse('Unauthorized', status=403)
+        
+        # Prevent self-deletion
+        if user == request.user:
+            messages.error(request, 'Δεν μπορείτε να διαγράψετε τον εαυτό σας.')
+            return HttpResponse('Cannot delete self', status=400)
+        
+        user.delete()
+        return HttpResponse('', status=200)
+    except User.DoesNotExist:
+        return HttpResponse('Not found', status=404)
+
+
+@login_required
+def category_create(request):
+    """
+    Create custom Expense Category
+    """
+    from .forms import ExpenseCategoryForm
+    from django.contrib import messages
+    
+    try:
+        company = request.user.userprofile.company
+    except:
+        company = Company.objects.first()
+    
+    if request.method == 'POST':
+        form = ExpenseCategoryForm(request.POST)
+        if form.is_valid():
+            category = form.save(commit=False)
+            category.company = company
+            category.is_system_default = False
+            category.save()
+            
+            messages.success(request, f'Η κατηγορία "{category.name}" δημιουργήθηκε επιτυχώς!')
+            return redirect('web:settings_hub')
+        else:
+            messages.error(request, 'Σφάλμα στη φόρμα. Ελέγξτε τα πεδία.')
+    
+    return redirect('web:settings_hub')
+
+
+@login_required
+def category_delete(request, category_id):
+    """
+    Delete custom Expense Category (with security check)
+    """
+    from django.http import HttpResponse
+    from django.contrib import messages
+    
+    try:
+        company = request.user.userprofile.company
+    except:
+        company = Company.objects.first()
+    
+    try:
+        category = ExpenseCategory.objects.get(id=category_id)
+        
+        # Security Check: Ensure category belongs to same company
+        if category.company != company:
+            messages.error(request, 'Δεν έχετε δικαίωμα διαγραφής αυτής της κατηγορίας.')
+            return HttpResponse('Unauthorized', status=403)
+        
+        # Prevent deletion of system defaults
+        if category.is_system_default or category.company is None:
+            messages.error(request, 'Δεν μπορείτε να διαγράψετε προεπιλεγμένες κατηγορίες.')
+            return HttpResponse('Cannot delete system category', status=400)
+        
+        category.delete()
+        return HttpResponse('', status=200)
+    except ExpenseCategory.DoesNotExist:
+        return HttpResponse('Not found', status=404)
