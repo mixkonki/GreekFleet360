@@ -5,9 +5,12 @@ from django.contrib import admin
 from unfold.admin import ModelAdmin
 from .models import FuelEntry, ServiceLog, IncidentReport, Vehicle
 
+# Import CompanyRestrictedAdmin from core
+from core.admin import CompanyRestrictedAdmin
+
 
 @admin.register(FuelEntry)
-class FuelEntryAdmin(ModelAdmin):
+class FuelEntryAdmin(CompanyRestrictedAdmin):
     list_display = [
         'vehicle', 'date', 'liters', 'cost_per_liter', 'total_cost',
         'is_full_tank', 'odometer_reading', 'driver', 'company'
@@ -38,7 +41,7 @@ class FuelEntryAdmin(ModelAdmin):
 
 
 @admin.register(ServiceLog)
-class ServiceLogAdmin(ModelAdmin):
+class ServiceLogAdmin(CompanyRestrictedAdmin):
     list_display = [
         'vehicle', 'date', 'service_type', 'odometer_reading',
         'total_cost', 'invoice_number', 'company'
@@ -68,7 +71,7 @@ class ServiceLogAdmin(ModelAdmin):
 
 
 @admin.register(IncidentReport)
-class IncidentReportAdmin(ModelAdmin):
+class IncidentReportAdmin(CompanyRestrictedAdmin):
     list_display = [
         'vehicle', 'date', 'type', 'location', 'driver',
         'cost_estimate', 'is_resolved', 'company'
@@ -107,7 +110,7 @@ class IncidentReportAdmin(ModelAdmin):
 
 
 @admin.register(Vehicle)
-class VehicleAdmin(ModelAdmin):
+class VehicleAdmin(CompanyRestrictedAdmin):
     list_display = [
         'license_plate', 'make', 'model', 'vehicle_type', 'company',
         'get_annual_depreciation', 'get_total_fixed_costs', 'get_hourly_rate'

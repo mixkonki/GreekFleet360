@@ -5,7 +5,7 @@ Tailwind CSS styled forms
 from django import forms
 from finance.models import RecurringExpense, TransportOrder, ExpenseCategory, CostCenter
 from core.models import Employee
-from operations.models import FuelEntry, ServiceLog
+from operations.models import FuelEntry, ServiceLog, Vehicle
 from core.models import VehicleAsset
 
 
@@ -241,3 +241,92 @@ class VehicleFinancialForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = VehicleAsset
         fields = ['purchase_price']
+
+
+class VehicleForm(TailwindFormMixin, forms.ModelForm):
+    """
+    Form for creating/editing Fleet Vehicles
+    Includes all fields: Basic Info, Capacity, and Financials
+    """
+    class Meta:
+        model = Vehicle
+        fields = [
+            'license_plate', 'make', 'model', 'vehicle_type',
+            'gross_weight_kg', 'payload_capacity_kg', 'seats',
+            'purchase_value', 'residual_value', 'depreciation_years',
+            'annual_insurance', 'annual_road_tax', 'available_hours_per_year'
+        ]
+        widgets = {
+            'license_plate': forms.TextInput(attrs={'placeholder': 'π.χ. ΑΒΓ-1234'}),
+            'make': forms.TextInput(attrs={'placeholder': 'π.χ. Mercedes-Benz'}),
+            'model': forms.TextInput(attrs={'placeholder': 'π.χ. Actros 1845'}),
+            'gross_weight_kg': forms.NumberInput(attrs={'placeholder': 'π.χ. 18000'}),
+            'payload_capacity_kg': forms.NumberInput(attrs={'placeholder': 'π.χ. 12000'}),
+            'seats': forms.NumberInput(attrs={'placeholder': 'π.χ. 2'}),
+            'purchase_value': forms.NumberInput(attrs={'placeholder': 'π.χ. 50000.00', 'step': '0.01'}),
+            'residual_value': forms.NumberInput(attrs={'placeholder': 'π.χ. 10000.00', 'step': '0.01'}),
+            'depreciation_years': forms.NumberInput(attrs={'placeholder': 'π.χ. 5'}),
+            'annual_insurance': forms.NumberInput(attrs={'placeholder': 'π.χ. 2000.00', 'step': '0.01'}),
+            'annual_road_tax': forms.NumberInput(attrs={'placeholder': 'π.χ. 500.00', 'step': '0.01'}),
+            'available_hours_per_year': forms.NumberInput(attrs={'placeholder': '1936'}),
+        }
+        labels = {
+            'license_plate': 'Πινακίδα',
+            'make': 'Μάρκα',
+            'model': 'Μοντέλο',
+            'vehicle_type': 'Τύπος Οχήματος',
+            'gross_weight_kg': 'Μικτό Βάρος (kg)',
+            'payload_capacity_kg': 'Ωφέλιμο Φορτίο (kg)',
+            'seats': 'Θέσεις Επιβατών',
+            'purchase_value': 'Αξία Αγοράς (€)',
+            'residual_value': 'Υπολειμματική Αξία (€)',
+            'depreciation_years': 'Έτη Απόσβεσης',
+            'annual_insurance': 'Ετήσια Ασφάλιση (€)',
+            'annual_road_tax': 'Ετήσια Τέλη Κυκλοφορίας (€)',
+            'available_hours_per_year': 'Διαθέσιμες Ώρες/Έτος',
+        }
+        help_texts = {
+            'available_hours_per_year': '1936 ώρες = 11 μήνες × 22 ημέρες × 8 ώρες',
+            'purchase_value': 'Αξία αγοράς του οχήματος σε ευρώ',
+            'residual_value': 'Υπολειμματική αξία μετά την απόσβεση',
+            'depreciation_years': 'Αριθμός ετών για την απόσβεση',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        # Extract company from kwargs if provided
+        company = kwargs.pop('company', None)
+        super().__init__(*args, **kwargs)
+        
+        # Add Euro symbol (€) to monetary field labels
+        monetary_fields = ['purchase_value', 'residual_value', 'annual_insurance', 'annual_road_tax']
+        for field_name in monetary_fields:
+            if field_name in self.fields:
+                current_label = self.fields[field_name].label
+                if '€' not in current_label:
+                    self.fields[field_name].label = f"{current_label}"
+
+
+class CompanyForm(TailwindFormMixin, forms.ModelForm):
+    """
+    Form for editing Company details
+    """
+    from core.models import Company
+    
+    class Meta:
+        model = Company
+        fields = ['name', 'transport_type', 'tax_id', 'address', 'phone', 'email']
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'π.χ. GreekFleet Transport'}),
+            'tax_id': forms.TextInput(attrs={'placeholder': 'π.χ. 123456789'}),
+            'address': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Διεύθυνση εταιρείας'}),
+            'phone': forms.TextInput(attrs={'placeholder': 'π.χ. 2101234567'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'π.χ. info@company.gr'}),
+        }
+        labels = {
+            'name': 'Επωνυμία Εταιρείας',
+            'transport_type': 'Τύπος Μεταφορών',
+            'tax_id': 'ΑΦΜ',
+            'address': 'Διεύθυνση',
+            'phone': 'Τηλέφωνο',
+            'email': 'Email',
+        }

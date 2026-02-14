@@ -12,8 +12,8 @@ from decimal import Decimal
 from core.models import VehicleAsset, Company, Employee
 from finance.models import TransportOrder, CompanyExpense, CostCenter
 from finance.services import CostCalculator
-from operations.models import FuelEntry, ServiceLog
-from .forms import CompanyExpenseForm, CostCenterForm, TransportOrderForm, FuelEntryForm
+from operations.models import FuelEntry, ServiceLog, Vehicle
+from .forms import CompanyExpenseForm, CostCenterForm, TransportOrderForm, FuelEntryForm, VehicleForm
 
 
 @login_required
@@ -723,3 +723,191 @@ def employee_delete(request, employee_id):
     
     # Return empty response for HTMX to remove the row
     return HttpResponse('', status=200)
+
+
+# ============================================================================
+# FLEET MANAGEMENT VIEWS (New Vehicle Model)
+# ============================================================================
+
+@login_required
+def fleet_list(request):
+    """
+    Fleet Dashboard with KPIs and Vehicle Table
+    """
+    try:
+        company = request.user.profile.company
+    except:
+        company = Company.objects.first()
+    
+    if not company:
+        context = {
+            'total_vehicles': 0,
+            'total_fleet_value': Decimal('0.00'),
+            'avg_fixed_cost_per_hour': Decimal('0.00'),
+            'vehicles': [],
+        }
+        return render(request, 'operations/vehicle_list.html', context)
+    
+    # Get all fleet vehicles
+    vehicles = Vehicle.objects.filter(company=company).select_related('company').order_by('license_plate')
+    
+    # Calculate KPIs
+    total_vehicles = vehicles.count()
+    total_fleet_value = vehicles.aggregate(total=Sum('purchase_value'))['total'] or Decimal('0.00')
+    
+    # Calculate average fixed cost per hour
+    if total_vehicles > 0:
+        total_fixed_costs = sum([v.fixed_cost_per_hour for v in vehicles])
+        avg_fixed_cost_per_hour = total_fixed_costs / Decimal(str(total_vehicles))
+    else:
+        avg_fixed_cost_per_hour = Decimal('0.00')
+    
+    # Get assigned drivers (from Employee model)
+    vehicles_with_drivers = []
+    for vehicle in vehicles:
+        # Find employee assigned to this vehicle (reverse lookup)
+        assigned_driver = Employee.objects.filter(
+            company=company,
+            assigned_vehicle__isnull=False
+        ).first()  # Simplified - you may need to add a proper relationship
+        
+        vehicles_with_drivers.append({
+            'vehicle': vehicle,
+            'driver': assigned_driver,
+        })
+    
+    context = {
+        'total_vehicles': total_vehicles,
+        'total_fleet_value': total_fleet_value,
+        'avg_fixed_cost_per_hour': avg_fixed_cost_per_hour,
+        'vehicles_with_drivers': vehicles_with_drivers,
+        'company': company,
+    }
+    
+    return render(request, 'operations/vehicle_list.html', context)
+
+
+@login_required
+def fleet_create(request):
+    """
+    Return Vehicle Form Modal for Create (HTMX GET)
+    OR Handle Vehicle Create (HTMX POST)
+    """
+    try:
+        company = request.user.profile.company
+    except:
+        company = Company.objects.first()
+    
+    if request.method == 'POST':
+        form = VehicleForm(request.POST, company=company)
+        if form.is_valid():
+            vehicle = form.save(commit=False)
+            vehicle.company = company
+            vehicle.save()
+            return redirect('web:fleet_list')
+        else:
+            context = {
+                'form': form,
+                'title': 'Προσθήκη Οχήματος',
+            }
+            return render(request, 'operations/partials/vehicle_form.html', context)
+    else:
+        form = VehicleForm(company=company)
+        context = {
+            'form': form,
+            'title': 'Προσθήκη Οχήματος',
+        }
+        return render(request, 'operations/partials/vehicle_form.html', context)
+
+
+@login_required
+def fleet_update(request, vehicle_id):
+    """
+    Return Vehicle Form Modal for Edit (HTMX GET)
+    OR Handle Vehicle Update (HTMX POST)
+    """
+    try:
+        company = request.user.profile.company
+    except:
+        company = Company.objects.first()
+    
+    vehicle = get_object_or_404(Vehicle, id=vehicle_id, company=company)
+    
+    if request.method == 'POST':
+        form = VehicleForm(request.POST, instance=vehicle, company=company)
+        if form.is_valid():
+            form.save()
+            return redirect('web:fleet_list')
+        else:
+            context = {
+                'form': form,
+                'title': 'Επεξεργασία Οχήματος',
+                'vehicle_id': vehicle_id,
+            }
+            return render(request, 'operations/partials/vehicle_form.html', context)
+    else:
+        form = VehicleForm(instance=vehicle, company=company)
+        context = {
+            'form': form,
+            'title': 'Επεξεργασία Οχήματος',
+            'vehicle_id': vehicle_id,
+        }
+        return render(request, 'operations/partials/vehicle_form.html', context)
+
+
+@login_required
+def fleet_delete(request, vehicle_id):
+    """
+    Delete Vehicle (HTMX)
+    """
+    from django.http import HttpResponse
+    
+    try:
+        company = request.user.profile.company
+    except:
+        company = Company.objects.first()
+    
+    vehicle = get_object_or_404(Vehicle, id=vehicle_id, company=company)
+    vehicle.delete()
+    
+    # Return empty response for HTMX to remove the row
+    return HttpResponse('', status=200)
+
+
+# ============================================================================
+# COMPANY SETTINGS VIEW
+# ============================================================================
+
+@login_required
+def company_edit(request):
+    """
+    Edit Company Settings
+    """
+    from .forms import CompanyForm
+    
+    try:
+        company = request.user.userprofile.company
+    except:
+        company = Company.objects.first()
+    
+    if not company:
+        from django.contrib import messages
+        messages.error(request, 'Δεν έχετε ανατεθεί σε εταιρεία. Επικοινωνήστε με τον διαχειριστή.')
+        return redirect('web:dashboard')
+    
+    if request.method == 'POST':
+        form = CompanyForm(request.POST, request.FILES, instance=company)
+        if form.is_valid():
+            form.save()
+            from django.contrib import messages
+            messages.success(request, 'Οι ρυθμίσεις της εταιρείας ενημερώθηκαν επιτυχώς!')
+            return redirect('web:company_edit')
+    else:
+        form = CompanyForm(instance=company)
+    
+    context = {
+        'form': form,
+        'company': company,
+    }
+    
+    return render(request, 'web/company_form.html', context)

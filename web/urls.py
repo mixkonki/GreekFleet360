@@ -25,4 +25,13 @@ urlpatterns = [
     path('finance/employee/create/', views.employee_create, name='employee_create'),
     path('finance/employee/<int:employee_id>/edit/', views.employee_edit, name='employee_edit'),
     path('finance/employee/<int:employee_id>/delete/', views.employee_delete, name='employee_delete'),
+    
+    # Fleet Management (New Vehicle Model)
+    path('fleet/', views.fleet_list, name='fleet_list'),
+    path('fleet/create/', views.fleet_create, name='fleet_create'),
+    path('fleet/<int:vehicle_id>/edit/', views.fleet_update, name='fleet_update'),
+    path('fleet/<int:vehicle_id>/delete/', views.fleet_delete, name='fleet_delete'),
+    
+    # Company Settings
+    path('settings/company/', views.company_edit, name='company_edit'),
 ]

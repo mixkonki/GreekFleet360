@@ -241,9 +241,9 @@ UNFOLD = {
                         "link": lambda request: "/admin/finance/transportorder/",
                     },
                     {
-                        "title": "Vehicles",
+                        "title": "Fleet Management",
                         "icon": "directions_car",
-                        "link": lambda request: "/admin/core/vehicleasset/",
+                        "link": lambda request: "/fleet/",
                     },
                     {
                         "title": "Drivers",

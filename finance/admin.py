@@ -7,6 +7,9 @@ from django.utils.html import format_html
 from .models import ExpenseFamily, ExpenseCategory, CostCenter, CompanyExpense, TransportOrder
 from .services import CostCalculator
 
+# Import CompanyRestrictedAdmin from core
+from core.admin import CompanyRestrictedAdmin
+
 
 @admin.register(ExpenseFamily)
 class ExpenseFamilyAdmin(ModelAdmin):
@@ -35,7 +38,7 @@ class ExpenseCategoryAdmin(ModelAdmin):
 
 
 @admin.register(CostCenter)
-class CostCenterAdmin(ModelAdmin):
+class CostCenterAdmin(CompanyRestrictedAdmin):
     list_display = ['name', 'company', 'is_active']
     list_filter = ['company', 'is_active']
     search_fields = ['name', 'description']
@@ -43,7 +46,7 @@ class CostCenterAdmin(ModelAdmin):
 
 
 @admin.register(CompanyExpense)
-class CompanyExpenseAdmin(ModelAdmin):
+class CompanyExpenseAdmin(CompanyRestrictedAdmin):
     list_display = ['category', 'company', 'amount', 'start_date', 'end_date', 'is_amortized', 'is_active']
     list_filter = ['company', 'category', 'is_amortized', 'is_active']
     search_fields = ['category__name', 'description', 'invoice_number']
@@ -67,7 +70,7 @@ class CompanyExpenseAdmin(ModelAdmin):
 
 
 @admin.register(TransportOrder)
-class TransportOrderAdmin(ModelAdmin):
+class TransportOrderAdmin(CompanyRestrictedAdmin):
     list_display = [
         'customer_name', 'date', 'origin', 'destination',
         'distance_km', 'agreed_price', 'assigned_vehicle',

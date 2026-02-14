@@ -1,0 +1,239 @@
+<!-- Vehicle Form Modal -->
+<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" id="vehicle-modal">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center pb-3 border-b">
+            <h3 class="text-2xl font-semibold text-gray-900">{{ title }}</h3>
+            <button onclick="document.getElementById('vehicle-modal').remove()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <form method="post" class="mt-6" hx-post="{% if vehicle_id %}{% url 'web:fleet_update' vehicle_id %}{% else %}{% url 'web:fleet_create' %}{% endif %}" hx-target="#modal-container">
+            {% csrf_token %}
+            {% if vehicle_id %}
+                <input type="hidden" name="vehicle_id" value="{{ vehicle_id }}">
+            {% endif %}
+
+            <!-- Basic Information Section -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Βασικά Στοιχεία
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- License Plate -->
+                    <div>
+                        <label for="{{ form.license_plate.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.license_plate.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.license_plate }}
+                        {% if form.license_plate.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.license_plate.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Make -->
+                    <div>
+                        <label for="{{ form.make.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.make.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.make }}
+                        {% if form.make.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.make.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Model -->
+                    <div>
+                        <label for="{{ form.model.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.model.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.model }}
+                        {% if form.model.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.model.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Vehicle Type -->
+                    <div>
+                        <label for="{{ form.vehicle_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.vehicle_type.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.vehicle_type }}
+                        {% if form.vehicle_type.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.vehicle_type.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Capacity Section -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    Χωρητικότητα
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Gross Weight -->
+                    <div>
+                        <label for="{{ form.gross_weight_kg.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.gross_weight_kg.label }}
+                        </label>
+                        {{ form.gross_weight_kg }}
+                        {% if form.gross_weight_kg.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.gross_weight_kg.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Payload Capacity -->
+                    <div>
+                        <label for="{{ form.payload_capacity_kg.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.payload_capacity_kg.label }}
+                        </label>
+                        {{ form.payload_capacity_kg }}
+                        {% if form.payload_capacity_kg.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.payload_capacity_kg.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Seats -->
+                    <div>
+                        <label for="{{ form.seats.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.seats.label }}
+                        </label>
+                        {{ form.seats }}
+                        {% if form.seats.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.seats.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Section - Assets -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Οικονομικά Στοιχεία - Περιουσιακά
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Purchase Value -->
+                    <div>
+                        <label for="{{ form.purchase_value.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.purchase_value.label }}
+                        </label>
+                        {{ form.purchase_value }}
+                        {% if form.purchase_value.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.purchase_value.help_text }}</p>
+                        {% endif %}
+                        {% if form.purchase_value.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.purchase_value.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Residual Value -->
+                    <div>
+                        <label for="{{ form.residual_value.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.residual_value.label }}
+                        </label>
+                        {{ form.residual_value }}
+                        {% if form.residual_value.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.residual_value.help_text }}</p>
+                        {% endif %}
+                        {% if form.residual_value.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.residual_value.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Depreciation Years -->
+                    <div>
+                        <label for="{{ form.depreciation_years.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.depreciation_years.label }}
+                        </label>
+                        {{ form.depreciation_years }}
+                        {% if form.depreciation_years.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.depreciation_years.help_text }}</p>
+                        {% endif %}
+                        {% if form.depreciation_years.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.depreciation_years.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Section - Operational -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    Οικονομικά Στοιχεία - Λειτουργικά
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Annual Insurance -->
+                    <div>
+                        <label for="{{ form.annual_insurance.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.annual_insurance.label }}
+                        </label>
+                        {{ form.annual_insurance }}
+                        {% if form.annual_insurance.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.annual_insurance.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Annual Road Tax -->
+                    <div>
+                        <label for="{{ form.annual_road_tax.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.annual_road_tax.label }}
+                        </label>
+                        {{ form.annual_road_tax }}
+                        {% if form.annual_road_tax.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.annual_road_tax.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Available Hours per Year -->
+                    <div>
+                        <label for="{{ form.available_hours_per_year.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.available_hours_per_year.label }}
+                        </label>
+                        {{ form.available_hours_per_year }}
+                        {% if form.available_hours_per_year.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.available_hours_per_year.help_text }}</p>
+                        {% endif %}
+                        {% if form.available_hours_per_year.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.available_hours_per_year.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <button 
+                    type="button" 
+                    onclick="document.getElementById('vehicle-modal').remove()"
+                    class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200">
+                    Ακύρωση
+                </button>
+                <button 
+                    type="submit" 
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Αποθήκευση
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
