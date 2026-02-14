@@ -902,7 +902,7 @@ def settings_hub(request):
     company_form = CompanyForm(instance=company)
     
     # Users
-    team_members = User.objects.filter(userprofile__company=company).select_related('userprofile')
+    team_members = User.objects.filter(profile__company=company).select_related('profile')
     
     # Cost Centers
     cost_centers = CostCenter.objects.filter(company=company, is_active=True).order_by('name')
@@ -1009,7 +1009,7 @@ def user_delete(request, user_id):
         user = User.objects.get(id=user_id)
         
         # Security Check: Ensure user belongs to same company
-        if user.userprofile.company != company:
+        if user.profile.company != company:
             messages.error(request, 'Δεν έχετε δικαίωμα διαγραφής αυτού του χρήστη.')
             return HttpResponse('Unauthorized', status=403)
         
