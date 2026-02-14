@@ -1,6 +1,6 @@
 """
 Management command to promote a user to Company Admin
-Sets is_staff=True and assigns full edit permissions for tenant-scoped models
+Sets is_staff=True, REMOVES superuser status, and assigns full edit permissions
 """
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User, Group, Permission
@@ -8,7 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 
 
 class Command(BaseCommand):
-    help = 'Promote a user to Company Admin (Staff + Full Edit Permissions)'
+    help = 'Promote a user to Company Admin (Staff + Full Edit Permissions, NO Superuser)'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -25,17 +25,24 @@ class Command(BaseCommand):
         except User.DoesNotExist:
             raise CommandError(f'User "{username}" does not exist')
         
-        # Check if already staff
-        if user.is_staff:
+        # STRICT RBAC: Remove superuser status
+        if user.is_superuser:
+            user.is_superuser = False
+            user.save()
             self.stdout.write(
-                self.style.WARNING(f'User "{username}" is already a staff member')
+                self.style.WARNING(f'⚠ Removed superuser status from "{username}" (enforcing RBAC)')
             )
-        else:
-            # Promote to staff
+        
+        # Set staff status
+        if not user.is_staff:
             user.is_staff = True
             user.save()
             self.stdout.write(
                 self.style.SUCCESS(f'✓ Set is_staff=True for user "{username}"')
+            )
+        else:
+            self.stdout.write(
+                self.style.WARNING(f'User "{username}" is already a staff member')
             )
         
         # Create or get "Company Admin" group
@@ -48,10 +55,11 @@ class Command(BaseCommand):
             tenant_models = [
                 ('core', 'employee'),
                 ('core', 'driverprofile'),
+                ('core', 'vehicleasset'),  # Old vehicle model (polymorphic)
                 ('operations', 'fuelentry'),
                 ('operations', 'servicelog'),
                 ('operations', 'incidentreport'),
-                ('operations', 'vehicle'),
+                ('operations', 'vehicle'),  # New vehicle model (accounting)
                 ('finance', 'costcenter'),
                 ('finance', 'companyexpense'),
                 ('finance', 'transportorder'),
@@ -71,9 +79,10 @@ class Command(BaseCommand):
                     for perm in perms:
                         group.permissions.add(perm)
                         permissions_added += 1
+                        self.stdout.write(f'  + {perm.codename}')
                 except ContentType.DoesNotExist:
                     self.stdout.write(
-                        self.style.WARNING(f'  Model {app_label}.{model_name} not found')
+                        self.style.WARNING(f'  ⚠ Model {app_label}.{model_name} not found')
                     )
             
             self.stdout.write(
@@ -95,10 +104,13 @@ class Command(BaseCommand):
         
         # Final summary
         self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS('=' * 60))
+        self.stdout.write(self.style.SUCCESS('=' * 70))
         self.stdout.write(self.style.SUCCESS(f'User "{username}" is now a Company Admin!'))
-        self.stdout.write(self.style.SUCCESS('=' * 60))
+        self.stdout.write(self.style.SUCCESS('=' * 70))
+        self.stdout.write(f'  Status: is_staff=True, is_superuser=False (RBAC enforced)')
+        self.stdout.write(f'  Group: Company Admin')
         self.stdout.write(f'  Access URL: http://localhost:8000/admin/')
-        self.stdout.write(f'  Permissions: Full CRUD on tenant-scoped models')
+        self.stdout.write(f'  Permissions: Full CRUD on 10 tenant-scoped models')
         self.stdout.write(f'  Data Scope: Only their assigned company')
+        self.stdout.write(f'  Vehicle Models: Both VehicleAsset (old) and Vehicle (new)')
         self.stdout.write('')

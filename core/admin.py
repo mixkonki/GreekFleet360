@@ -196,12 +196,34 @@ class UserProfileInline(admin.StackedInline):
 @admin.register(User)
 class CustomUserAdmin(BaseUserAdmin):
     """
-    Custom User Admin with UserProfile inline
+    Custom User Admin with UserProfile inline and tenant isolation
     """
     inlines = (UserProfileInline,)
     
     list_display = ['username', 'email', 'first_name', 'last_name', 'get_company', 'is_staff', 'is_active']
     list_filter = ['is_staff', 'is_superuser', 'is_active', 'groups']
+    
+    def get_queryset(self, request):
+        """
+        Filter users by company for non-superusers
+        """
+        qs = super().get_queryset(request)
+        
+        # Superusers see all users
+        if request.user.is_superuser:
+            return qs
+        
+        # Staff users only see users from their company
+        try:
+            user_company = request.user.userprofile.company
+            if user_company:
+                # Filter users who have a profile with the same company
+                return qs.filter(userprofile__company=user_company)
+        except:
+            pass
+        
+        # If no company assigned, return empty queryset
+        return qs.none()
     
     def get_company(self, obj):
         """Display user's company"""
