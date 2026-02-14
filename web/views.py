@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import User
-from core.models import VehicleAsset, Company, Employee
+from core.models import Company, Employee
 from finance.models import TransportOrder, CompanyExpense, CostCenter, ExpenseCategory
 from finance.services import CostCalculator
 from operations.models import FuelEntry, ServiceLog, Vehicle
@@ -69,12 +69,12 @@ def dashboard_home(request):
     fleet_profit_margin = sum(profit_margins) / len(profit_margins) if profit_margins else 0
     
     # KPI 3: Active Vehicles
-    active_vehicles = VehicleAsset.objects.filter(company=company, status='ACTIVE').count()
+    active_vehicles = Vehicle.objects.filter(company=company, status='ACTIVE').count()
     
     # KPI 4: Upcoming Maintenance (vehicles due for service in next 30 days or 1000 km)
     # Simplified logic: vehicles with odometer > 10000 km since last service
     upcoming_maintenance = 0
-    for vehicle in VehicleAsset.objects.filter(company=company, status='ACTIVE'):
+    for vehicle in Vehicle.objects.filter(company=company, status='ACTIVE'):
         last_service = ServiceLog.objects.filter(
             vehicle=vehicle,
             service_type='REGULAR'
@@ -116,7 +116,7 @@ def vehicle_list(request):
     offset = (page - 1) * per_page
     
     # Base queryset
-    vehicles_qs = VehicleAsset.objects.filter(company=company).select_related('company')
+    vehicles_qs = Vehicle.objects.filter(company=company).select_related('company')
     
     # Apply search filter
     if search_query:
@@ -329,7 +329,7 @@ def finance_settings(request):
     total_monthly = sum([m['cost'] for m in monthly_breakdown]) / Decimal('12.0')
     
     # Get all vehicles for cost profile table
-    vehicles = VehicleAsset.objects.filter(company=company).select_related('company')
+    vehicles = Vehicle.objects.filter(company=company).select_related('company')
     
     # Get all employees
     employees = Employee.objects.filter(company=company).select_related('position', 'assigned_vehicle').order_by('last_name', 'first_name')

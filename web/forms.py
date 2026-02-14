@@ -5,7 +5,7 @@ Tailwind CSS styled forms
 from django import forms
 from django.contrib.auth.models import User
 from finance.models import RecurringExpense, TransportOrder, ExpenseCategory, CostCenter
-from core.models import Employee, Company, VehicleAsset
+from core.models import Employee, Company
 from operations.models import FuelEntry, ServiceLog, Vehicle
 from accounts.models import UserProfile
 
@@ -185,63 +185,16 @@ class EmployeeForm(TailwindFormMixin, forms.ModelForm):
         
         # Filter assigned_vehicle queryset by company
         if company:
-            self.fields['assigned_vehicle'].queryset = VehicleAsset.objects.filter(
+            self.fields['assigned_vehicle'].queryset = Vehicle.objects.filter(
                 company=company,
                 status='ACTIVE'
             )
         elif self.instance and self.instance.pk and self.instance.company:
             # If editing existing employee, use its company
-            self.fields['assigned_vehicle'].queryset = VehicleAsset.objects.filter(
+            self.fields['assigned_vehicle'].queryset = Vehicle.objects.filter(
                 company=self.instance.company,
                 status='ACTIVE'
             )
-
-
-class VehicleFinancialForm(TailwindFormMixin, forms.ModelForm):
-    """
-    Form for editing Vehicle Financial Profile
-    (Only financial fields, not the full vehicle)
-    """
-    # Custom fields for cost configuration
-    driver_monthly_salary = forms.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        required=False,
-        label="Μηνιαίος Μισθός Οδηγού (€)",
-        help_text="Μικτός μισθός οδηγού"
-    )
-    
-    annual_insurance_cost = forms.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        required=False,
-        label="Ετήσιο Κόστος Ασφάλισης (€)"
-    )
-    
-    tire_set_price = forms.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        required=False,
-        label="Τιμή Σετ Ελαστικών (€)"
-    )
-    
-    tire_lifespan_km = forms.IntegerField(
-        required=False,
-        label="Διάρκεια Ζωής Ελαστικών (km)",
-        initial=50000
-    )
-    
-    maintenance_accrual_per_km = forms.DecimalField(
-        max_digits=6,
-        decimal_places=3,
-        required=False,
-        label="Πρόβλεψη Συντήρησης (€/km)",
-        initial=0.05
-    )
-    
-    class Meta:
-        model = VehicleAsset
-        fields = ['purchase_price']
 
 
 class VehicleForm(TailwindFormMixin, forms.ModelForm):

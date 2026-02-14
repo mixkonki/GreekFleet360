@@ -112,25 +112,37 @@ class IncidentReportAdmin(CompanyRestrictedAdmin):
 @admin.register(Vehicle)
 class VehicleAdmin(CompanyRestrictedAdmin):
     list_display = [
-        'license_plate', 'make', 'model', 'vehicle_type', 'company',
-        'get_annual_depreciation', 'get_total_fixed_costs', 'get_hourly_rate'
+        'license_plate', 'make', 'model', 'vehicle_type', 'fuel_type',
+        'status', 'company', 'get_annual_depreciation', 'get_hourly_rate'
     ]
-    list_filter = ['company', 'vehicle_type']
-    search_fields = ['license_plate', 'make', 'model']
+    list_filter = ['company', 'vehicle_type', 'status', 'fuel_type']
+    search_fields = ['license_plate', 'vin', 'make', 'model']
     ordering = ['license_plate']
     
     fieldsets = (
-        ('Βασικές Πληροφορίες', {
-            'fields': ('license_plate', 'make', 'model', 'vehicle_type', 'company')
+        ('Ταυτότητα', {
+            'fields': ('company', 'license_plate', 'vin', 'make', 'model', 'color', 'manufacturing_year')
         }),
-        ('Χωρητικότητα', {
-            'fields': ('gross_weight_kg', 'payload_capacity_kg', 'seats')
+        ('Τύπος & Ενέργεια', {
+            'fields': ('vehicle_type', 'fuel_type', 'tank_capacity')
         }),
-        ('Σταθερά Κόστη - Περιουσιακά Στοιχεία', {
-            'fields': ('purchase_value', 'residual_value', 'depreciation_years')
+        ('Τεχνικά Χαρακτηριστικά', {
+            'fields': ('gross_weight_kg', 'payload_capacity_kg', 'seats', 'length_m', 'height_m', 'width_m'),
+            'classes': ('collapse',)
         }),
-        ('Σταθερά Κόστη - Λειτουργικά', {
-            'fields': ('annual_insurance', 'annual_road_tax', 'available_hours_per_year')
+        ('Οικονομικά Στοιχεία', {
+            'fields': ('purchase_value', 'residual_value', 'depreciation_years', 'annual_insurance', 'annual_road_tax', 'available_hours_per_year')
+        }),
+        ('Κατάσταση & Χρήση', {
+            'fields': ('status', 'current_odometer', 'last_service_km')
+        }),
+        ('Νομικά Έγγραφα', {
+            'fields': ('insurance_expiry', 'kteo_expiry', 'adr_expiry'),
+            'classes': ('collapse',)
+        }),
+        ('Σημειώσεις', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
         }),
     )
     

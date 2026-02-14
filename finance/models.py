@@ -6,7 +6,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 from datetime import timedelta
-from core.models import Company, VehicleAsset, DriverProfile
+from core.models import Company, DriverProfile
 
 
 class ExpenseFamily(models.Model):
@@ -353,7 +353,7 @@ class TransportOrder(models.Model):
     
     # Assignment
     assigned_vehicle = models.ForeignKey(
-        VehicleAsset,
+        'operations.Vehicle',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

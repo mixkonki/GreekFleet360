@@ -3,9 +3,9 @@ Operations Models for GreekFleet 360
 Fuel, Service, and Incident Tracking
 """
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
-from core.models import Company, VehicleAsset, DriverProfile
+from core.models import Company, DriverProfile
 
 
 class FuelEntry(models.Model):
@@ -20,7 +20,7 @@ class FuelEntry(models.Model):
         verbose_name="Εταιρεία"
     )
     vehicle = models.ForeignKey(
-        VehicleAsset,
+        'Vehicle',
         on_delete=models.CASCADE,
         related_name='fuel_entries',
         verbose_name="Όχημα"
@@ -126,7 +126,7 @@ class ServiceLog(models.Model):
         verbose_name="Εταιρεία"
     )
     vehicle = models.ForeignKey(
-        VehicleAsset,
+        'Vehicle',
         on_delete=models.CASCADE,
         related_name='service_logs',
         verbose_name="Όχημα"
@@ -220,7 +220,7 @@ class IncidentReport(models.Model):
         verbose_name="Εταιρεία"
     )
     vehicle = models.ForeignKey(
-        VehicleAsset,
+        'Vehicle',
         on_delete=models.CASCADE,
         related_name='incidents',
         verbose_name="Όχημα"
@@ -291,33 +291,64 @@ class IncidentReport(models.Model):
 
 class Vehicle(models.Model):
     """
-    Simplified Vehicle Model for Fixed Cost Accounting
-    Variable costs (fuel, maintenance) are calculated from log entries
+    Unified Vehicle Model - Single Source of Truth
+    Combines identity, specs, financials, and legal compliance
     """
     VEHICLE_TYPES = [
         ('TRUCK', 'Φορτηγό'),
         ('BUS', 'Λεωφορείο'),
         ('VAN', 'Van'),
         ('CAR', 'Αυτοκίνητο'),
+        ('MOTO', 'Μοτοσυκλέτα'),
     ]
     
-    # Basic Info
-    license_plate = models.CharField(max_length=20, unique=True, verbose_name="Πινακίδα")
-    make = models.CharField(max_length=50, verbose_name="Μάρκα")
-    model = models.CharField(max_length=50, verbose_name="Μοντέλο")
-    vehicle_type = models.CharField(
-        max_length=20,
-        choices=VEHICLE_TYPES,
-        verbose_name="Τύπος Οχήματος"
-    )
+    FUEL_TYPES = [
+        ('DIESEL', 'Πετρέλαιο'),
+        ('PETROL', 'Βενζίνη'),
+        ('ELECTRIC', 'Ηλεκτρικό'),
+        ('GAS', 'Φυσικό Αέριο (CNG/LNG)'),
+        ('HYBRID', 'Υβριδικό'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('ACTIVE', 'Ενεργό'),
+        ('MAINTENANCE', 'Σε Συντήρηση'),
+        ('INACTIVE', 'Ανενεργό'),
+        ('SOLD', 'Πωλήθηκε'),
+    ]
+    
+    # ========== IDENTITY ==========
     company = models.ForeignKey(
         Company,
         on_delete=models.CASCADE,
         related_name='fleet_vehicles',
         verbose_name="Εταιρεία"
     )
+    license_plate = models.CharField(max_length=20, unique=True, verbose_name="Πινακίδα")
+    vin = models.CharField(
+        max_length=17,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name="Αριθμός Πλαισίου (VIN)"
+    )
+    make = models.CharField(max_length=50, verbose_name="Μάρκα")
+    model = models.CharField(max_length=50, verbose_name="Μοντέλο")
+    color = models.CharField(max_length=30, blank=True, verbose_name="Χρώμα")
+    manufacturing_year = models.PositiveIntegerField(
+        default=2020,
+        validators=[MinValueValidator(1900), MaxValueValidator(2100)],
+        verbose_name="Έτος Κατασκευής"
+    )
     
-    # Capacity
+    # ========== TYPE ==========
+    vehicle_type = models.CharField(
+        max_length=20,
+        choices=VEHICLE_TYPES,
+        verbose_name="Τύπος Οχήματος"
+    )
+    
+    # ========== TECHNICAL SPECS ==========
     gross_weight_kg = models.IntegerField(
         null=True,
         blank=True,
@@ -333,11 +364,52 @@ class Vehicle(models.Model):
     seats = models.IntegerField(
         null=True,
         blank=True,
-        validators=[MinValueValidator(1)],
-        verbose_name="Θέσεις Επιβατών"
+        validators=[MinValueValidator(0)],
+        verbose_name="Θέσεις Επιβατών",
+        help_text="0 για φορτηγά, >0 για επιβατικά"
+    )
+    length_m = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Μήκος (m)"
+    )
+    height_m = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Ύψος (m)"
+    )
+    width_m = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Πλάτος (m)"
     )
     
-    # Fixed Costs - Assets
+    # ========== ENERGY ==========
+    fuel_type = models.CharField(
+        max_length=20,
+        choices=FUEL_TYPES,
+        default='DIESEL',
+        verbose_name="Τύπος Καυσίμου"
+    )
+    tank_capacity = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Χωρητικότητα Ρεζερβουάρ (L/kWh)"
+    )
+    
+    # ========== FINANCIALS ==========
     purchase_value = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -357,8 +429,6 @@ class Vehicle(models.Model):
         validators=[MinValueValidator(1)],
         verbose_name="Έτη Απόσβεσης"
     )
-    
-    # Fixed Costs - Operational
     annual_insurance = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -380,14 +450,54 @@ class Vehicle(models.Model):
         help_text="1936 ώρες = 11 μήνες × 22 ημέρες × 8 ώρες"
     )
     
+    # ========== STATUS & USAGE ==========
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='ACTIVE',
+        verbose_name="Κατάσταση"
+    )
+    current_odometer = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Τρέχοντα Χιλιόμετρα"
+    )
+    last_service_km = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Χιλιόμετρα Τελευταίας Συντήρησης"
+    )
+    
+    # ========== LEGAL DOCUMENTS ==========
+    insurance_expiry = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Λήξη Ασφάλισης"
+    )
+    kteo_expiry = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Λήξη ΚΤΕΟ"
+    )
+    adr_expiry = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Λήξη ADR",
+        help_text="Μόνο για οχήματα επικίνδυνων φορτίων"
+    )
+    
     # Metadata
+    notes = models.TextField(blank=True, verbose_name="Σημειώσεις")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        verbose_name = "Όχημα (Λογιστικό)"
-        verbose_name_plural = "Οχήματα (Λογιστικά)"
+        verbose_name = "Όχημα"
+        verbose_name_plural = "Οχήματα"
         ordering = ['license_plate']
+        indexes = [
+            models.Index(fields=['company', 'status']),
+            models.Index(fields=['vehicle_type']),
+            models.Index(fields=['license_plate']),
+        ]
     
     def __str__(self):
         return f"{self.license_plate} - {self.make} {self.model}"

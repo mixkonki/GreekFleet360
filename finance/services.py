@@ -24,7 +24,7 @@ class CostCalculator:
         Initialize calculator with trip parameters
         
         Args:
-            vehicle: VehicleAsset instance
+            vehicle: Vehicle instance (operations.Vehicle)
             distance_km: Trip distance in kilometers
             duration_hours: Trip duration in hours
             tolls_cost: Toll costs (optional)
