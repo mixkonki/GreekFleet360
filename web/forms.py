@@ -199,58 +199,59 @@ class EmployeeForm(TailwindFormMixin, forms.ModelForm):
 
 class VehicleForm(TailwindFormMixin, forms.ModelForm):
     """
-    Form for creating/editing Fleet Vehicles - Phase 2
-    Enhanced with VehicleClass, BodyType, Dimensions, Weights, Power
+    Form for creating/editing Fleet Vehicles - Phase 4
+    Aligned with Official Registration Certificate (Άδεια Κυκλοφορίας)
     """
     class Meta:
         model = Vehicle
         fields = [
-            # Section 1: Identity
+            # Section 1: Identity (Registration Certificate Codes)
             'license_plate', 'vin', 'make', 'model', 'color', 'manufacturing_year',
+            'first_registration_date', 'acquisition_date',
             # Section 2: Classification
             'vehicle_class', 'body_type',
-            # Section 3: Dimensions
+            # Section 3: External Dimensions
             'length_total_m', 'width_m', 'height_m',
+            # Section 3b: Cargo Dimensions
+            'cargo_length_m', 'cargo_width_m', 'cargo_height_m',
             # Section 4: Weights
             'gross_weight_kg', 'unladen_weight_kg',
             # Section 5: Power & Energy
-            'horsepower', 'fuel_type', 'emission_class', 'tank_capacity',
+            'horsepower', 'engine_capacity_cc', 'fuel_type', 'emission_class', 'tank_capacity',
             # Section 6: Capacity
-            'seats', 'pallets_capacity',
+            'seats',
             # Section 7: Financials
-            'purchase_value', 'residual_value', 'depreciation_years', 'available_hours_per_year',
+            'purchase_value', 'available_hours_per_year',
             # Section 8: Status
             'status', 'current_odometer',
-            # Section 9: Legal
-            'insurance_expiry', 'kteo_expiry', 'adr_expiry',
             # Notes
             'notes'
         ]
         widgets = {
-            'license_plate': forms.TextInput(attrs={'placeholder': 'π.χ. ΑΒΓ-1234'}),
-            'vin': forms.TextInput(attrs={'placeholder': '17-ψήφιος κωδικός πλαισίου'}),
-            'make': forms.TextInput(attrs={'placeholder': 'π.χ. Mercedes-Benz'}),
-            'model': forms.TextInput(attrs={'placeholder': 'π.χ. Actros 1845'}),
-            'color': forms.TextInput(attrs={'placeholder': 'π.χ. Λευκό'}),
+            'license_plate': forms.TextInput(attrs={'placeholder': 'Κωδικός A'}),
+            'vin': forms.TextInput(attrs={'placeholder': 'Κωδικός E - 17 ψηφία'}),
+            'make': forms.TextInput(attrs={'placeholder': 'Κωδικός D.1'}),
+            'model': forms.TextInput(attrs={'placeholder': 'Κωδικός D.2'}),
+            'color': forms.TextInput(attrs={'placeholder': 'Κωδικός R'}),
             'manufacturing_year': forms.NumberInput(attrs={'placeholder': '2020'}),
-            'length_total_m': forms.NumberInput(attrs={'placeholder': 'π.χ. 13.6', 'step': '0.01'}),
-            'width_m': forms.NumberInput(attrs={'placeholder': 'π.χ. 2.55', 'step': '0.01'}),
-            'height_m': forms.NumberInput(attrs={'placeholder': 'π.χ. 4.0', 'step': '0.01'}),
-            'gross_weight_kg': forms.NumberInput(attrs={'placeholder': 'π.χ. 18000'}),
-            'unladen_weight_kg': forms.NumberInput(attrs={'placeholder': 'π.χ. 6000'}),
-            'horsepower': forms.NumberInput(attrs={'placeholder': 'π.χ. 450'}),
-            'tank_capacity': forms.NumberInput(attrs={'placeholder': 'π.χ. 400', 'step': '0.01'}),
-            'seats': forms.NumberInput(attrs={'placeholder': 'π.χ. 2'}),
-            'pallets_capacity': forms.NumberInput(attrs={'placeholder': 'π.χ. 33'}),
-            'purchase_value': forms.NumberInput(attrs={'placeholder': 'π.χ. 50000.00', 'step': '0.01'}),
-            'residual_value': forms.NumberInput(attrs={'placeholder': 'π.χ. 10000.00', 'step': '0.01'}),
-            'depreciation_years': forms.NumberInput(attrs={'placeholder': 'π.χ. 5'}),
+            'first_registration_date': forms.DateInput(attrs={'type': 'date', 'placeholder': 'Κωδικός B'}),
+            'acquisition_date': forms.DateInput(attrs={'type': 'date'}),
+            'length_total_m': forms.NumberInput(attrs={'placeholder': 'Κωδικός L', 'step': '0.01'}),
+            'width_m': forms.NumberInput(attrs={'placeholder': 'Εξωτερικό πλάτος', 'step': '0.01'}),
+            'height_m': forms.NumberInput(attrs={'placeholder': 'Εξωτερικό ύψος', 'step': '0.01'}),
+            'cargo_length_m': forms.NumberInput(attrs={'placeholder': 'Εσωτερικό μήκος', 'step': '0.01'}),
+            'cargo_width_m': forms.NumberInput(attrs={'placeholder': 'Εσωτερικό πλάτος', 'step': '0.01'}),
+            'cargo_height_m': forms.NumberInput(attrs={'placeholder': 'Εσωτερικό ύψος', 'step': '0.01'}),
+            'gross_weight_kg': forms.NumberInput(attrs={'placeholder': 'Κωδικός F.1'}),
+            'unladen_weight_kg': forms.NumberInput(attrs={'placeholder': 'Κωδικός G'}),
+            'horsepower': forms.NumberInput(attrs={'placeholder': 'Κωδικός P.2'}),
+            'engine_capacity_cc': forms.NumberInput(attrs={'placeholder': 'Κωδικός P.1'}),
+            'tank_capacity': forms.NumberInput(attrs={'placeholder': 'Λίτρα/kWh', 'step': '0.01'}),
+            'seats': forms.NumberInput(attrs={'placeholder': 'Κωδικός S.1'}),
+            'purchase_value': forms.NumberInput(attrs={'placeholder': 'Αξία αγοράς', 'step': '0.01'}),
             'available_hours_per_year': forms.NumberInput(attrs={'placeholder': '1936'}),
-            'current_odometer': forms.NumberInput(attrs={'placeholder': 'π.χ. 150000'}),
-            'insurance_expiry': forms.DateInput(attrs={'type': 'date'}),
-            'kteo_expiry': forms.DateInput(attrs={'type': 'date'}),
-            'adr_expiry': forms.DateInput(attrs={'type': 'date'}),
-            'notes': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Σημειώσεις για το όχημα'}),
+            'current_odometer': forms.NumberInput(attrs={'placeholder': 'Τρέχοντα km'}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Σημειώσεις'}),
         }
     
     def __init__(self, *args, **kwargs):

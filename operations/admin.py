@@ -113,44 +113,50 @@ class IncidentReportAdmin(CompanyRestrictedAdmin):
 class VehicleAdmin(CompanyRestrictedAdmin):
     list_display = [
         'license_plate', 'make', 'model', 'vehicle_class', 'body_type', 'fuel_type',
-        'status', 'company', 'get_annual_depreciation', 'get_hourly_rate'
+        'status', 'company', 'get_current_value', 'get_annual_depreciation', 'get_hourly_rate'
     ]
     list_filter = ['company', 'vehicle_class', 'body_type', 'status', 'fuel_type', 'emission_class']
     search_fields = ['license_plate', 'vin', 'make', 'model']
     ordering = ['license_plate']
     
     fieldsets = (
-        ('Ταυτότητα', {
-            'fields': ('company', 'license_plate', 'vin', 'make', 'model', 'color', 'manufacturing_year')
+        ('Ταυτότητα (Από Άδεια Κυκλοφορίας)', {
+            'fields': ('company', 'license_plate', 'vin', 'make', 'model', 'color', 'manufacturing_year', 'first_registration_date', 'acquisition_date'),
+            'description': 'Στοιχεία από την επίσημη άδεια κυκλοφορίας με κωδικούς A, B, D.1, D.2, E, R'
         }),
         ('Κατηγοριοποίηση', {
             'fields': ('vehicle_class', 'body_type')
         }),
-        ('Διαστάσεις (Routing)', {
+        ('Εξωτερικές Διαστάσεις (Routing)', {
             'fields': ('length_total_m', 'width_m', 'height_m'),
             'classes': ('collapse',)
         }),
-        ('Βάρη (Από Άδεια Κυκλοφορίας)', {
+        ('Εσωτερικές Διαστάσεις Φορτίου', {
+            'fields': ('cargo_length_m', 'cargo_width_m', 'cargo_height_m'),
+            'classes': ('collapse',),
+            'description': 'Εσωτερικός χώρος φορτίου για υπολογισμό όγκου'
+        }),
+        ('Βάρη (F.1, G)', {
             'fields': ('gross_weight_kg', 'unladen_weight_kg'),
-            'classes': ('collapse',)
+            'classes': ('collapse',),
+            'description': 'Κωδικοί F.1 (Μικτό) και G (Απόβαρο) από άδεια'
         }),
-        ('Ισχύς & Ενέργεια', {
-            'fields': ('horsepower', 'fuel_type', 'emission_class', 'tank_capacity'),
-            'classes': ('collapse',)
+        ('Ισχύς & Ενέργεια (P.1, P.2, P.3)', {
+            'fields': ('horsepower', 'engine_capacity_cc', 'fuel_type', 'emission_class', 'tank_capacity'),
+            'classes': ('collapse',),
+            'description': 'Κωδικοί P.1 (Κυβισμός), P.2 (HP), P.3 (Καύσιμο)'
         }),
-        ('Χωρητικότητα', {
-            'fields': ('seats', 'pallets_capacity'),
-            'classes': ('collapse',)
+        ('Χωρητικότητα (S.1)', {
+            'fields': ('seats',),
+            'classes': ('collapse',),
+            'description': 'Κωδικός S.1 - Θέσεις επιβατών'
         }),
-        ('Οικονομικά Στοιχεία (Asset Tracking)', {
-            'fields': ('purchase_value', 'residual_value', 'depreciation_years', 'available_hours_per_year')
+        ('Οικονομικά (Αυτόματη Απόσβεση 16%)', {
+            'fields': ('purchase_value', 'available_hours_per_year'),
+            'description': 'Απόσβεση υπολογίζεται αυτόματα με 16% ετησίως από acquisition_date'
         }),
         ('Κατάσταση & Χρήση', {
             'fields': ('status', 'current_odometer', 'last_service_km')
-        }),
-        ('Νομικά Έγγραφα', {
-            'fields': ('insurance_expiry', 'kteo_expiry', 'adr_expiry'),
-            'classes': ('collapse',)
         }),
         ('Σημειώσεις', {
             'fields': ('notes',),
@@ -160,9 +166,14 @@ class VehicleAdmin(CompanyRestrictedAdmin):
     
     readonly_fields = ['created_at', 'updated_at']
     
+    def get_current_value(self, obj):
+        """Display current accounting value"""
+        return f"€{obj.current_accounting_value:,.2f}"
+    get_current_value.short_description = "Τρέχουσα Αξία"
+    
     def get_annual_depreciation(self, obj):
         return f"€{obj.annual_depreciation:,.2f}"
-    get_annual_depreciation.short_description = "Ετήσια Απόσβεση"
+    get_annual_depreciation.short_description = "Ετήσια Απόσβεση (16%)"
     
     def get_hourly_rate(self, obj):
         return f"€{obj.fixed_cost_per_hour:,.2f}/ώρα"

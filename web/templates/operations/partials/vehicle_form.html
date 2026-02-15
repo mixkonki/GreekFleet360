@@ -1,9 +1,12 @@
-<!-- Vehicle Form Modal with Alpine.js Dynamic Fields -->
+<!-- Vehicle Form Modal - Aligned with Registration Certificate (Άδεια Κυκλοφορίας) -->
 <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" id="vehicle-modal">
-    <div class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white mb-10">
         <!-- Modal Header -->
         <div class="flex justify-between items-center pb-3 border-b">
-            <h3 class="text-2xl font-semibold text-gray-900">{{ title }}</h3>
+            <div>
+                <h3 class="text-2xl font-semibold text-gray-900">{{ title }}</h3>
+                <p class="text-sm text-gray-500 mt-1">Συμπληρώστε τα στοιχεία από την Άδεια Κυκλοφορίας</p>
+            </div>
             <button onclick="document.getElementById('vehicle-modal').remove()" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -13,7 +16,7 @@
 
         <!-- Modal Body -->
         <form method="post" 
-              class="mt-6" 
+              class="mt-6 max-h-[70vh] overflow-y-auto px-2" 
               hx-post="{% if vehicle_id %}{% url 'web:fleet_update' vehicle_id %}{% else %}{% url 'web:fleet_create' %}{% endif %}" 
               hx-target="#modal-container"
               x-data="{ vClass: '{{ form.vehicle_class.value|default:'TRUCK' }}' }">
@@ -22,65 +25,91 @@
                 <input type="hidden" name="vehicle_id" value="{{ vehicle_id }}">
             {% endif %}
 
-            <!-- Section 1: Identity (Always Visible) -->
-            <div class="mb-6">
-                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+            <!-- Section 1: Identity from Registration Certificate -->
+            <div class="mb-6 bg-blue-50 p-4 rounded-lg">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <i class="fas fa-id-card text-blue-600 mr-2"></i>
-                    Ταυτότητα Οχήματος
+                    Ταυτότητα Οχήματος (Από Άδεια Κυκλοφορίας)
                 </h4>
                 <div class="grid grid-cols-2 gap-4">
-                    <!-- License Plate -->
+                    <!-- License Plate (A) -->
                     <div>
-                        <label for="{{ form.license_plate.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.license_plate.label }} <span class="text-red-500">*</span>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Αριθμός Κυκλοφορίας <span class="text-blue-600 font-mono">(A)</span> <span class="text-red-500">*</span>
                         </label>
                         {{ form.license_plate }}
                     </div>
 
-                    <!-- VIN -->
+                    <!-- VIN (E) -->
                     <div>
-                        <label for="{{ form.vin.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.vin.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Αριθμός Πλαισίου <span class="text-blue-600 font-mono">(E)</span>
                         </label>
                         {{ form.vin }}
                     </div>
 
-                    <!-- Make -->
+                    <!-- Make (D.1) -->
                     <div>
-                        <label for="{{ form.make.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.make.label }} <span class="text-red-500">*</span>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Μάρκα <span class="text-blue-600 font-mono">(D.1)</span> <span class="text-red-500">*</span>
                         </label>
                         {{ form.make }}
                     </div>
 
-                    <!-- Model -->
+                    <!-- Model (D.2) -->
                     <div>
-                        <label for="{{ form.model.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.model.label }} <span class="text-red-500">*</span>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Τύπος/Μοντέλο <span class="text-blue-600 font-mono">(D.2)</span> <span class="text-red-500">*</span>
                         </label>
                         {{ form.model }}
                     </div>
 
-                    <!-- Manufacturing Year -->
+                    <!-- Color (R) -->
                     <div>
-                        <label for="{{ form.manufacturing_year.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.manufacturing_year.label }}
-                        </label>
-                        {{ form.manufacturing_year }}
-                    </div>
-
-                    <!-- Color -->
-                    <div>
-                        <label for="{{ form.color.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.color.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Χρώμα <span class="text-blue-600 font-mono">(R)</span>
                         </label>
                         {{ form.color }}
                     </div>
 
+                    <!-- Manufacturing Year -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Έτος Κατασκευής
+                        </label>
+                        {{ form.manufacturing_year }}
+                    </div>
+
+                    <!-- First Registration Date (B) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Ημ/νία Πρώτης Άδειας <span class="text-blue-600 font-mono">(B)</span>
+                        </label>
+                        {{ form.first_registration_date }}
+                    </div>
+
+                    <!-- Acquisition Date -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Ημ/νία Απόκτησης από Εταιρεία
+                        </label>
+                        {{ form.acquisition_date }}
+                        <p class="text-xs text-gray-500 mt-1">Για υπολογισμό απόσβεσης</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Classification -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <i class="fas fa-tags text-purple-600 mr-2"></i>
+                    Κατηγοριοποίηση
+                </h4>
+                <div class="grid grid-cols-2 gap-4">
                     <!-- Vehicle Class -->
                     <div>
-                        <label for="{{ form.vehicle_class.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.vehicle_class.label }} <span class="text-red-500">*</span>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Κλάση Οχήματος <span class="text-red-500">*</span>
                         </label>
                         <select name="vehicle_class" id="{{ form.vehicle_class.id_for_label }}" 
                                 x-model="vClass"
@@ -93,229 +122,234 @@
 
                     <!-- Body Type -->
                     <div>
-                        <label for="{{ form.body_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.body_type.label }} <span class="text-red-500">*</span>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Τύπος Αμαξώματος <span class="text-red-500">*</span>
                         </label>
                         {{ form.body_type }}
                     </div>
                 </div>
             </div>
 
-            <!-- Section 2: Engine & Fuel (Motorized Only) -->
-            <div x-show="['TRACTOR', 'TRUCK', 'BUS', 'VAN', 'CAR'].includes(vClass)" class="mb-6">
+            <!-- Section 3: Engine & Fuel (Motorized Only) -->
+            <div x-show="['TRACTOR', 'TRUCK', 'BUS', 'VAN', 'CAR'].includes(vClass)" class="mb-6 bg-purple-50 p-4 rounded-lg">
                 <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
                     <i class="fas fa-cogs text-purple-600 mr-2"></i>
                     Κινητήρας & Καύσιμο
                 </h4>
                 <div class="grid grid-cols-2 gap-4">
-                    <!-- Horsepower -->
+                    <!-- Horsepower (P.2) -->
                     <div>
-                        <label for="{{ form.horsepower.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.horsepower.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Ιπποδύναμη <span class="text-blue-600 font-mono">(P.2)</span>
                         </label>
                         {{ form.horsepower }}
                     </div>
 
-                    <!-- Fuel Type -->
+                    <!-- Engine Capacity (P.1) -->
                     <div>
-                        <label for="{{ form.fuel_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.fuel_type.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Κυβισμός Κινητήρα <span class="text-blue-600 font-mono">(P.1)</span>
+                        </label>
+                        {{ form.engine_capacity_cc }}
+                    </div>
+
+                    <!-- Fuel Type (P.3) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Τύπος Καυσίμου <span class="text-blue-600 font-mono">(P.3)</span>
                         </label>
                         {{ form.fuel_type }}
                     </div>
 
                     <!-- Emission Class -->
                     <div>
-                        <label for="{{ form.emission_class.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.emission_class.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Κατηγορία Εκπομπών (Euro)
                         </label>
                         {{ form.emission_class }}
+                        <p class="text-xs text-gray-500 mt-1">Για διεθνή διόδια</p>
                     </div>
 
                     <!-- Tank Capacity -->
                     <div>
-                        <label for="{{ form.tank_capacity.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.tank_capacity.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Χωρητικότητα Ρεζερβουάρ
                         </label>
                         {{ form.tank_capacity }}
                     </div>
                 </div>
             </div>
 
-            <!-- Section 3: Cargo Specs (Load Carriers Only) -->
-            <div x-show="['TRUCK', 'SEMI_TRAILER', 'TRAILER'].includes(vClass)" class="mb-6">
+            <!-- Section 4: Dimensions (Load Carriers) -->
+            <div x-show="['TRUCK', 'SEMI_TRAILER', 'TRAILER'].includes(vClass)" class="mb-6 bg-orange-50 p-4 rounded-lg">
                 <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
                     <i class="fas fa-ruler-combined text-orange-600 mr-2"></i>
-                    Διαστάσεις & Φορτίο
+                    Διαστάσεις Οχήματος & Φορτίου
                 </h4>
-                <div class="grid grid-cols-2 gap-4">
-                    <!-- Length -->
-                    <div>
-                        <label for="{{ form.length_total_m.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.length_total_m.label }}
-                        </label>
-                        {{ form.length_total_m }}
+                
+                <!-- External Dimensions -->
+                <div class="mb-4">
+                    <p class="text-sm font-semibold text-gray-600 mb-2">Εξωτερικές Διαστάσεις</p>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Μήκος <span class="text-blue-600 font-mono">(L)</span>
+                            </label>
+                            {{ form.length_total_m }}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Πλάτος
+                            </label>
+                            {{ form.width_m }}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Ύψος
+                            </label>
+                            {{ form.height_m }}
+                        </div>
                     </div>
+                </div>
 
-                    <!-- Width -->
-                    <div>
-                        <label for="{{ form.width_m.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.width_m.label }}
-                        </label>
-                        {{ form.width_m }}
-                    </div>
-
-                    <!-- Height -->
-                    <div>
-                        <label for="{{ form.height_m.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.height_m.label }}
-                        </label>
-                        {{ form.height_m }}
-                    </div>
-
-                    <!-- Pallets Capacity -->
-                    <div>
-                        <label for="{{ form.pallets_capacity.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.pallets_capacity.label }}
-                        </label>
-                        {{ form.pallets_capacity }}
+                <!-- Internal Cargo Dimensions -->
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 mb-2">Εσωτερικές Διαστάσεις Χώρου Φορτίου</p>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Μήκος Φορτίου
+                            </label>
+                            {{ form.cargo_length_m }}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Πλάτος Φορτίου
+                            </label>
+                            {{ form.cargo_width_m }}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Ύψος Φορτίου
+                            </label>
+                            {{ form.cargo_height_m }}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Section 4: Weights (All Heavy Vehicles) -->
-            <div x-show="['TRACTOR', 'TRUCK', 'SEMI_TRAILER', 'TRAILER', 'BUS'].includes(vClass)" class="mb-6">
+            <!-- Section 5: Weights (Heavy Vehicles) -->
+            <div x-show="['TRACTOR', 'TRUCK', 'SEMI_TRAILER', 'TRAILER', 'BUS'].includes(vClass)" class="mb-6 bg-green-50 p-4 rounded-lg">
                 <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
                     <i class="fas fa-weight text-green-600 mr-2"></i>
                     Βάρη (Από Άδεια Κυκλοφορίας)
                 </h4>
                 <div class="grid grid-cols-2 gap-4">
-                    <!-- Gross Weight -->
+                    <!-- Gross Weight (F.1) -->
                     <div>
-                        <label for="{{ form.gross_weight_kg.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.gross_weight_kg.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Μικτό Βάρος <span class="text-blue-600 font-mono">(F.1)</span>
                         </label>
                         {{ form.gross_weight_kg }}
+                        <p class="text-xs text-gray-500 mt-1">Μέγιστο επιτρεπόμενο βάρος</p>
                     </div>
 
-                    <!-- Unladen Weight -->
+                    <!-- Unladen Weight (G) -->
                     <div>
-                        <label for="{{ form.unladen_weight_kg.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.unladen_weight_kg.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Απόβαρο <span class="text-blue-600 font-mono">(G)</span>
                         </label>
                         {{ form.unladen_weight_kg }}
+                        <p class="text-xs text-gray-500 mt-1">Βάρος κενού οχήματος</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Section 5: Passengers (Bus/Van/Car Only) -->
-            <div x-show="['BUS', 'VAN', 'CAR'].includes(vClass)" class="mb-6">
+            <!-- Section 6: Passengers (Bus/Van/Car Only) -->
+            <div x-show="['BUS', 'VAN', 'CAR'].includes(vClass)" class="mb-6 bg-indigo-50 p-4 rounded-lg">
                 <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
                     <i class="fas fa-users text-indigo-600 mr-2"></i>
                     Επιβατική Χωρητικότητα
                 </h4>
                 <div class="grid grid-cols-2 gap-4">
-                    <!-- Seats -->
+                    <!-- Seats (S.1) -->
                     <div>
-                        <label for="{{ form.seats.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.seats.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Θέσεις Επιβατών <span class="text-blue-600 font-mono">(S.1)</span>
                         </label>
                         {{ form.seats }}
                     </div>
                 </div>
             </div>
 
-            <!-- Section 6: Assets & Legal (Always Visible) -->
-            <div class="mb-6">
+            <!-- Section 7: Financials (Automated Depreciation) -->
+            <div class="mb-6 bg-yellow-50 p-4 rounded-lg">
                 <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
                     <i class="fas fa-euro-sign text-yellow-600 mr-2"></i>
-                    Οικονομικά & Νομικά
+                    Οικονομικά Στοιχεία
                 </h4>
+                <div class="bg-blue-100 border-l-4 border-blue-500 p-3 mb-4">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>Αυτόματη Απόσβεση:</strong> Το σύστημα υπολογίζει αυτόματα την απόσβεση με ρυθμό 16% ετησίως από την ημερομηνία απόκτησης.
+                    </p>
+                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <!-- Purchase Value -->
                     <div>
-                        <label for="{{ form.purchase_value.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.purchase_value.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Αξία Αγοράς (€)
                         </label>
                         {{ form.purchase_value }}
                     </div>
 
-                    <!-- Residual Value -->
-                    <div>
-                        <label for="{{ form.residual_value.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.residual_value.label }}
-                        </label>
-                        {{ form.residual_value }}
-                    </div>
-
-                    <!-- Depreciation Years -->
-                    <div>
-                        <label for="{{ form.depreciation_years.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.depreciation_years.label }}
-                        </label>
-                        {{ form.depreciation_years }}
-                    </div>
-
                     <!-- Available Hours per Year -->
                     <div>
-                        <label for="{{ form.available_hours_per_year.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.available_hours_per_year.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Διαθέσιμες Ώρες/Έτος
                         </label>
                         {{ form.available_hours_per_year }}
+                        <p class="text-xs text-gray-500 mt-1">1936 ώρες = 11 μήνες × 22 ημέρες × 8 ώρες</p>
                     </div>
+                </div>
+            </div>
 
+            <!-- Section 8: Status & Usage -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <i class="fas fa-chart-line text-gray-600 mr-2"></i>
+                    Κατάσταση & Χρήση
+                </h4>
+                <div class="grid grid-cols-2 gap-4">
                     <!-- Status -->
                     <div>
-                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.status.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Κατάσταση
                         </label>
                         {{ form.status }}
                     </div>
 
                     <!-- Current Odometer -->
                     <div>
-                        <label for="{{ form.current_odometer.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.current_odometer.label }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Τρέχοντα Χιλιόμετρα
                         </label>
                         {{ form.current_odometer }}
-                    </div>
-
-                    <!-- Insurance Expiry -->
-                    <div>
-                        <label for="{{ form.insurance_expiry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.insurance_expiry.label }}
-                        </label>
-                        {{ form.insurance_expiry }}
-                    </div>
-
-                    <!-- KTEO Expiry -->
-                    <div>
-                        <label for="{{ form.kteo_expiry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.kteo_expiry.label }}
-                        </label>
-                        {{ form.kteo_expiry }}
-                    </div>
-
-                    <!-- ADR Expiry -->
-                    <div>
-                        <label for="{{ form.adr_expiry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.adr_expiry.label }}
-                        </label>
-                        {{ form.adr_expiry }}
-                    </div>
-
-                    <!-- Notes -->
-                    <div class="col-span-2">
-                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.notes.label }}
-                        </label>
-                        {{ form.notes }}
                     </div>
                 </div>
             </div>
 
+            <!-- Section 9: Notes -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-sticky-note text-gray-600 mr-1"></i>
+                    Σημειώσεις
+                </label>
+                {{ form.notes }}
+            </div>
+
             <!-- Form Actions -->
-            <div class="flex justify-end gap-3 pt-4 border-t">
+            <div class="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-white">
                 <button 
                     type="button" 
                     onclick="document.getElementById('vehicle-modal').remove()"

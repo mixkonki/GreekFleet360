@@ -292,8 +292,12 @@ class IncidentReport(models.Model):
 class Vehicle(models.Model):
     """
     Unified Vehicle Model - Single Source of Truth
-    Phase 2: Enhanced with VehicleClass and BodyType for complex transport operations
+    Phase 4: Aligned with Official Registration Certificate (Άδεια Κυκλοφορίας)
+    Automated 16% annual depreciation based on acquisition date
     """
+    
+    # Depreciation Constant (16% annual rate)
+    ANNUAL_DEPRECIATION_RATE = Decimal('0.16')
     
     # ========== ENUMS / CHOICES ==========
     
@@ -342,11 +346,10 @@ class Vehicle(models.Model):
     class Status(models.TextChoices):
         """Operational Status"""
         ACTIVE = 'ACTIVE', 'Ενεργό'
-        MAINTENANCE = 'MAINTENANCE', 'Σε Συντήρηση'
         INACTIVE = 'INACTIVE', 'Ανενεργό'
         SOLD = 'SOLD', 'Πωλήθηκε'
     
-    # ========== SECTION 1: IDENTITY ==========
+    # ========== SECTION 1: IDENTITY (From Registration Certificate) ==========
     company = models.ForeignKey(
         Company,
         on_delete=models.CASCADE,
@@ -356,23 +359,49 @@ class Vehicle(models.Model):
     license_plate = models.CharField(
         max_length=20,
         unique=True,
-        verbose_name="Πινακίδα Κυκλοφορίας"
+        verbose_name="Αριθμός Κυκλοφορίας (A)",
+        help_text="Κωδικός A από την άδεια κυκλοφορίας"
     )
     vin = models.CharField(
         max_length=17,
         unique=True,
         blank=True,
         null=True,
-        verbose_name="Αριθμός Πλαισίου (VIN/Chassis No)",
-        help_text="17-ψήφιος κωδικός πλαισίου"
+        verbose_name="Αριθμός Πλαισίου (E)",
+        help_text="Κωδικός E - 17-ψήφιος αριθμός πλαισίου"
     )
-    make = models.CharField(max_length=50, verbose_name="Μάρκα (Make)")
-    model = models.CharField(max_length=50, verbose_name="Μοντέλο (Model)")
-    color = models.CharField(max_length=30, blank=True, verbose_name="Χρώμα")
+    make = models.CharField(
+        max_length=50,
+        verbose_name="Μάρκα (D.1)",
+        help_text="Κωδικός D.1 από την άδεια"
+    )
+    model = models.CharField(
+        max_length=50,
+        verbose_name="Τύπος/Μοντέλο (D.2)",
+        help_text="Κωδικός D.2 από την άδεια"
+    )
+    color = models.CharField(
+        max_length=30,
+        blank=True,
+        verbose_name="Χρώμα (R)",
+        help_text="Κωδικός R από την άδεια"
+    )
     manufacturing_year = models.PositiveIntegerField(
         default=2020,
         validators=[MinValueValidator(1900), MaxValueValidator(2100)],
         verbose_name="Έτος Κατασκευής"
+    )
+    first_registration_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Ημερομηνία Πρώτης Άδειας (B)",
+        help_text="Κωδικός B - Ημερομηνία πρώτης άδειας κυκλοφορίας"
+    )
+    acquisition_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Ημερομηνία Απόκτησης από Εταιρεία",
+        help_text="Ημερομηνία που η εταιρεία αγόρασε το όχημα"
     )
     
     # ========== SECTION 2: CLASSIFICATION ==========
@@ -390,14 +419,15 @@ class Vehicle(models.Model):
     )
     
     # ========== SECTION 3: DIMENSIONS (Critical for Routing) ==========
+    # External Dimensions
     length_total_m = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         null=True,
         blank=True,
         validators=[MinValueValidator(Decimal('0.01'))],
-        verbose_name="Συνολικό Μήκος (m)",
-        help_text="Συμπεριλαμβανομένων προεξοχών"
+        verbose_name="Συνολικό Μήκος (L)",
+        help_text="Κωδικός L - Συμπεριλαμβανομένων προεξοχών"
     )
     width_m = models.DecimalField(
         max_digits=4,
@@ -405,7 +435,8 @@ class Vehicle(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(Decimal('0.01'))],
-        verbose_name="Πλάτος (m)"
+        verbose_name="Πλάτος",
+        help_text="Εξωτερικό πλάτος οχήματος"
     )
     height_m = models.DecimalField(
         max_digits=4,
@@ -413,8 +444,37 @@ class Vehicle(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(Decimal('0.01'))],
-        verbose_name="Ύψος (m)",
+        verbose_name="Ύψος",
         help_text="Κρίσιμο για γέφυρες και σήραγγες"
+    )
+    
+    # Internal Cargo Dimensions
+    cargo_length_m = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Μήκος Χώρου Φορτίου (m)",
+        help_text="Εσωτερικό μήκος χώρου φορτίου"
+    )
+    cargo_width_m = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Πλάτος Χώρου Φορτίου (m)",
+        help_text="Εσωτερικό πλάτος χώρου φορτίου"
+    )
+    cargo_height_m = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Ύψος Χώρου Φορτίου (m)",
+        help_text="Εσωτερικό ύψος χώρου φορτίου"
     )
     
     # ========== SECTION 4: WEIGHTS (From Registration Certificate) ==========
@@ -422,15 +482,15 @@ class Vehicle(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(0)],
-        verbose_name="Μικτό Βάρος (kg)",
-        help_text="Μέγιστο επιτρεπόμενο βάρος (από άδεια κυκλοφορίας)"
+        verbose_name="Μικτό Βάρος (F.1)",
+        help_text="Κωδικός F.1 - Μέγιστο επιτρεπόμενο βάρος"
     )
     unladen_weight_kg = models.IntegerField(
         null=True,
         blank=True,
         validators=[MinValueValidator(0)],
-        verbose_name="Απόβαρο (kg)",
-        help_text="Βάρος κενού οχήματος"
+        verbose_name="Απόβαρο (G)",
+        help_text="Κωδικός G - Βάρος κενού οχήματος"
     )
     
     # ========== SECTION 5: POWER & ENERGY ==========
@@ -438,21 +498,29 @@ class Vehicle(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(1)],
-        verbose_name="Ιπποδύναμη (HP)",
-        help_text="Για ελκυστήρες, φορτηγά, λεωφορεία"
+        verbose_name="Ιπποδύναμη (P.2)",
+        help_text="Κωδικός P.2 - Ισχύς κινητήρα σε HP"
+    )
+    engine_capacity_cc = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        verbose_name="Κυβισμός Κινητήρα (P.1)",
+        help_text="Κωδικός P.1 - Κυβισμός σε cm³"
     )
     fuel_type = models.CharField(
         max_length=20,
         choices=FuelType.choices,
         default=FuelType.DIESEL,
-        verbose_name="Τύπος Καυσίμου"
+        verbose_name="Τύπος Καυσίμου (P.3)",
+        help_text="Κωδικός P.3 από την άδεια"
     )
     emission_class = models.CharField(
         max_length=20,
         choices=EmissionClass.choices,
         null=True,
         blank=True,
-        verbose_name="Κατηγορία Εκπομπών (Euro)",
+        verbose_name="Κατηγορία Εκπομπών",
         help_text="Κρίσιμο για διεθνή διόδια και περιβαλλοντικές ζώνες"
     )
     tank_capacity = models.DecimalField(
@@ -469,36 +537,18 @@ class Vehicle(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(0)],
-        verbose_name="Θέσεις Επιβατών",
-        help_text="Για λεωφορεία και επιβατικά"
-    )
-    pallets_capacity = models.IntegerField(
-        null=True,
-        blank=True,
-        validators=[MinValueValidator(0)],
-        verbose_name="Χωρητικότητα Παλετών",
-        help_text="Προαιρετικό - για φορτηγά"
+        verbose_name="Θέσεις Επιβατών (S.1)",
+        help_text="Κωδικός S.1 - Για λεωφορεία και επιβατικά"
     )
     
-    # ========== SECTION 7: FINANCIALS (Asset Tracking Only) ==========
+    # ========== SECTION 7: FINANCIALS (Automated Depreciation) ==========
     purchase_value = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=Decimal('0.00'),
         validators=[MinValueValidator(Decimal('0.00'))],
-        verbose_name="Αξία Αγοράς (€)"
-    )
-    residual_value = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))],
-        verbose_name="Υπολειμματική Αξία (€)"
-    )
-    depreciation_years = models.IntegerField(
-        default=5,
-        validators=[MinValueValidator(1)],
-        verbose_name="Έτη Απόσβεσης"
+        verbose_name="Αξία Αγοράς (€)",
+        help_text="Αξία κατά την απόκτηση από την εταιρεία"
     )
     available_hours_per_year = models.IntegerField(
         default=1936,
@@ -523,23 +573,6 @@ class Vehicle(models.Model):
         verbose_name="Χιλιόμετρα Τελευταίας Συντήρησης"
     )
     
-    # ========== SECTION 9: LEGAL DOCUMENTS ==========
-    insurance_expiry = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name="Λήξη Ασφάλισης"
-    )
-    kteo_expiry = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name="Λήξη ΚΤΕΟ"
-    )
-    adr_expiry = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name="Λήξη ADR",
-        help_text="Μόνο για οχήματα επικίνδυνων φορτίων"
-    )
     
     # Metadata
     notes = models.TextField(blank=True, verbose_name="Σημειώσεις")
@@ -572,17 +605,44 @@ class Vehicle(models.Model):
         return None
     
     @property
+    def current_accounting_value(self):
+        """
+        Calculate current accounting value using 16% annual depreciation
+        Based on acquisition_date and purchase_value
+        
+        Returns:
+            Decimal: Current accounting value
+        """
+        from datetime import date
+        from dateutil.relativedelta import relativedelta
+        
+        if not self.acquisition_date or not self.purchase_value:
+            return self.purchase_value
+        
+        # Calculate years since acquisition
+        today = date.today()
+        years_owned = relativedelta(today, self.acquisition_date).years
+        months_owned = relativedelta(today, self.acquisition_date).months
+        
+        # Convert to decimal years (including months)
+        total_years = Decimal(str(years_owned)) + (Decimal(str(months_owned)) / Decimal('12'))
+        
+        # Calculate depreciation: value * (1 - rate)^years
+        depreciation_factor = (Decimal('1') - self.ANNUAL_DEPRECIATION_RATE) ** total_years
+        current_value = self.purchase_value * depreciation_factor
+        
+        # Ensure value doesn't go below zero
+        return max(current_value, Decimal('0.00'))
+    
+    @property
     def annual_depreciation(self):
         """
-        Calculate annual depreciation
+        Calculate annual depreciation at 16% rate
         
         Returns:
             Decimal: Annual depreciation amount
         """
-        if self.depreciation_years <= 0:
-            return Decimal('0.00')
-        
-        return (self.purchase_value - self.residual_value) / Decimal(str(self.depreciation_years))
+        return self.purchase_value * self.ANNUAL_DEPRECIATION_RATE
     
     @property
     def fixed_cost_per_hour(self):
@@ -596,3 +656,15 @@ class Vehicle(models.Model):
             return Decimal('0.00')
         
         return self.annual_depreciation / Decimal(str(self.available_hours_per_year))
+    
+    @property
+    def cargo_volume_m3(self):
+        """
+        Calculate internal cargo volume in cubic meters
+        
+        Returns:
+            Decimal: Cargo volume in m³, or None if dimensions missing
+        """
+        if self.cargo_length_m and self.cargo_width_m and self.cargo_height_m:
+            return self.cargo_length_m * self.cargo_width_m * self.cargo_height_m
+        return None
