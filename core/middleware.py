@@ -12,26 +12,64 @@ class CurrentCompanyMiddleware(MiddlewareMixin):
     
     This enables automatic tenant isolation throughout the application.
     After this middleware runs, views can access request.company
+    
+    Thread-local cleanup is performed in process_response and process_exception
+    to prevent context leakage between requests.
     """
     
     def process_request(self, request):
         """
         Attach company to request and set in thread-local storage
         
+        Tries multiple lookup paths:
+        1. user.profile.company
+        2. user.userprofile.company
+        3. user.driver_profile.company
+        
         Args:
             request: HttpRequest object
         """
+        company = None
+        
         if request.user.is_authenticated:
-            try:
-                # Get company from user's profile
-                company = request.user.profile.company
-                request.company = company
-                # Set in thread-local for ORM-level filtering
-                set_current_company(company)
-            except AttributeError:
-                # User has no profile or profile has no company
-                request.company = None
-                set_current_company(None)
-        else:
-            request.company = None
-            set_current_company(None)
+            # Try multiple profile lookup paths
+            for profile_attr in ['profile', 'userprofile', 'driver_profile']:
+                try:
+                    profile = getattr(request.user, profile_attr, None)
+                    if profile and hasattr(profile, 'company'):
+                        company = profile.company
+                        break
+                except AttributeError:
+                    continue
+        
+        # Attach to request and thread-local
+        request.company = company
+        set_current_company(company)
+    
+    def process_response(self, request, response):
+        """
+        Clear thread-local company context after response
+        
+        Args:
+            request: HttpRequest object
+            response: HttpResponse object
+        
+        Returns:
+            HttpResponse object
+        """
+        set_current_company(None)
+        return response
+    
+    def process_exception(self, request, exception):
+        """
+        Clear thread-local company context on exception
+        
+        Args:
+            request: HttpRequest object
+            exception: Exception object
+        
+        Returns:
+            None (allows exception to propagate)
+        """
+        set_current_company(None)
+        return None

@@ -35,6 +35,9 @@ class CompanyScopedManager(models.Manager):
     
     This ensures tenant isolation at the ORM level.
     Only returns objects belonging to the current user's company.
+    
+    SAFE DEFAULT: Returns empty queryset if no company context
+    (prevents accidental cross-tenant data exposure)
     """
     
     def get_queryset(self):
@@ -42,7 +45,7 @@ class CompanyScopedManager(models.Manager):
         Override get_queryset to filter by current company
         
         Returns:
-            QuerySet filtered by company
+            QuerySet filtered by company, or empty queryset if no context
         """
         queryset = super().get_queryset()
         current_company = get_current_company()
@@ -51,9 +54,10 @@ class CompanyScopedManager(models.Manager):
             # Filter by current company
             return queryset.filter(company=current_company)
         
-        # If no company context, return unfiltered queryset
-        # (e.g., in admin, management commands, or unauthenticated requests)
-        return queryset
+        # SAFE DEFAULT: Return empty queryset if no company context
+        # This prevents accidental data leakage in unauthenticated requests
+        # Use Model.all_objects for admin/system access
+        return queryset.none()
 
 
 class CompanyScopedModel(models.Model):
@@ -62,7 +66,8 @@ class CompanyScopedModel(models.Model):
     
     Automatically includes:
     - ForeignKey to Company
-    - CompanyScopedManager for automatic filtering
+    - CompanyScopedManager for automatic filtering (objects)
+    - Unfiltered manager for admin/system access (all_objects)
     - Metadata fields (created_at, updated_at)
     """
     
@@ -76,8 +81,11 @@ class CompanyScopedModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Δημιουργήθηκε")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Ενημερώθηκε")
     
-    # Use the scoped manager
+    # Scoped manager (default) - auto-filters by company
     objects = CompanyScopedManager()
+    
+    # Unfiltered manager - for admin and system operations
+    all_objects = models.Manager()
     
     class Meta:
         abstract = True
