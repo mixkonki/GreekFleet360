@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,10 +26,19 @@ load_dotenv(BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-0p(r4=$r@keh#59i45pm&%36bn0c1r=tjw+^2gtgn23=171l8q')
+SECRET_KEY = os.getenv('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+if not SECRET_KEY:
+    if DEBUG := (os.getenv('DEBUG', 'True') == 'True'):
+        # Development fallback - NEVER use in production
+        SECRET_KEY = 'django-insecure-dev-key-CHANGE-THIS-IN-PRODUCTION'
+    else:
+        raise ImproperlyConfigured(
+            'SECRET_KEY environment variable is required in production. '
+            'Generate a secure key using: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
+        )
+else:
+    DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
@@ -273,17 +283,33 @@ UNFOLD = {
 
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.thessdrive.gr'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'info@thessdrive.gr'
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD', 'inf1q2w!Q@W')
-DEFAULT_FROM_EMAIL = 'info@thessdrive.gr'
-SERVER_EMAIL = 'info@thessdrive.gr'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.example.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', EMAIL_HOST_USER)
 
 # Admin Notifications
-ADMINS = [('Administrator', 'info@thessdrive.gr')]
+ADMINS = [('Administrator', os.getenv('ADMIN_EMAIL', 'admin@example.com'))]
 MANAGERS = ADMINS
+
+# ============================================================================
+# PRODUCTION SECURITY SETTINGS
+# ============================================================================
+# Uncomment these settings when deploying to production (DEBUG=False)
+
+# SECURE_SSL_REDIRECT = True  # Redirect all HTTP to HTTPS
+# SESSION_COOKIE_SECURE = True  # Send session cookie only over HTTPS
+# CSRF_COOKIE_SECURE = True  # Send CSRF cookie only over HTTPS
+# SECURE_HSTS_SECONDS = 31536000  # 1 year - Enable HTTP Strict Transport Security
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True  # Apply HSTS to all subdomains
+# SECURE_HSTS_PRELOAD = True  # Allow browser HSTS preload
+# SECURE_CONTENT_TYPE_NOSNIFF = True  # Prevent MIME-sniffing
+# SECURE_BROWSER_XSS_FILTER = True  # Enable browser XSS filter
+# X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking
 
 # Logging Configuration
 LOGGING = {
