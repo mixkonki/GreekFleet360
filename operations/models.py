@@ -292,48 +292,82 @@ class IncidentReport(models.Model):
 class Vehicle(models.Model):
     """
     Unified Vehicle Model - Single Source of Truth
-    Combines identity, specs, financials, and legal compliance
+    Phase 2: Enhanced with VehicleClass and BodyType for complex transport operations
     """
-    VEHICLE_TYPES = [
-        ('TRUCK', 'Φορτηγό'),
-        ('BUS', 'Λεωφορείο'),
-        ('VAN', 'Van'),
-        ('CAR', 'Αυτοκίνητο'),
-        ('MOTO', 'Μοτοσυκλέτα'),
-    ]
     
-    FUEL_TYPES = [
-        ('DIESEL', 'Πετρέλαιο'),
-        ('PETROL', 'Βενζίνη'),
-        ('ELECTRIC', 'Ηλεκτρικό'),
-        ('GAS', 'Φυσικό Αέριο (CNG/LNG)'),
-        ('HYBRID', 'Υβριδικό'),
-    ]
+    # ========== ENUMS / CHOICES ==========
     
-    STATUS_CHOICES = [
-        ('ACTIVE', 'Ενεργό'),
-        ('MAINTENANCE', 'Σε Συντήρηση'),
-        ('INACTIVE', 'Ανενεργό'),
-        ('SOLD', 'Πωλήθηκε'),
-    ]
+    class VehicleClass(models.TextChoices):
+        """Vehicle Classification - Defines operational capabilities"""
+        TRACTOR = 'TRACTOR', 'Ελκυστήρας (Tractor)'
+        TRUCK = 'TRUCK', 'Φορτηγό (Rigid Truck)'
+        SEMI_TRAILER = 'SEMI_TRAILER', 'Ημιρυμουλκούμενο (Semi-Trailer)'
+        TRAILER = 'TRAILER', 'Ρυμουλκούμενο (Trailer)'
+        BUS = 'BUS', 'Λεωφορείο (Bus)'
+        VAN = 'VAN', 'Βαν / Ελαφρύ Φορτηγό (Van)'
+        CAR = 'CAR', 'Επιβατικό (Passenger Car)'
     
-    # ========== IDENTITY ==========
+    class BodyType(models.TextChoices):
+        """Body Type - Physical cargo area configuration"""
+        TRACTOR_UNIT = 'TRACTOR_UNIT', 'Μονάδα Ελκυστήρα (Tractor Unit)'
+        CURTAIN = 'CURTAIN', 'Κουρτίνα (Curtain Sider)'
+        BOX = 'BOX', 'Κόφα (Box/Van Body)'
+        FLATBED = 'FLATBED', 'Πλατφόρμα/Ανοιχτό (Flatbed)'
+        REFRIGERATOR = 'REFRIGERATOR', 'Ψυγείο (Refrigerated)'
+        TANKER = 'TANKER', 'Βυτίο (Tanker)'
+        TIPPER = 'TIPPER', 'Ανατρεπόμενο (Tipper/Dump)'
+        CONTAINER_CHASSIS = 'CONTAINER_CHASSIS', 'Βάση Κοντέινερ (Container Chassis)'
+        CAR_CARRIER = 'CAR_CARRIER', 'Αυτοκινητάμαξα (Car Carrier)'
+        BUS_BODY = 'BUS_BODY', 'Αμάξωμα Λεωφορείου (Bus Body)'
+        OTHER = 'OTHER', 'Άλλο / Ειδικό (Other/Special)'
+    
+    class FuelType(models.TextChoices):
+        """Fuel/Energy Type"""
+        DIESEL = 'DIESEL', 'Πετρέλαιο (Diesel)'
+        PETROL = 'PETROL', 'Βενζίνη (Petrol/Gasoline)'
+        ELECTRIC = 'ELECTRIC', 'Ηλεκτρικό (Electric)'
+        GAS = 'GAS', 'Φυσικό Αέριο (CNG/LNG)'
+        HYBRID = 'HYBRID', 'Υβριδικό (Hybrid)'
+    
+    class EmissionClass(models.TextChoices):
+        """Euro Emission Standards - Critical for international tolls"""
+        EURO_3 = 'EURO_3', 'Euro 3'
+        EURO_4 = 'EURO_4', 'Euro 4'
+        EURO_5 = 'EURO_5', 'Euro 5'
+        EURO_6 = 'EURO_6', 'Euro 6'
+        EURO_6C = 'EURO_6C', 'Euro 6c'
+        EURO_6D = 'EURO_6D', 'Euro 6d'
+        ELECTRIC_ZERO = 'ELECTRIC_ZERO', 'Μηδενικές Εκπομπές (Electric/Zero)'
+    
+    class Status(models.TextChoices):
+        """Operational Status"""
+        ACTIVE = 'ACTIVE', 'Ενεργό'
+        MAINTENANCE = 'MAINTENANCE', 'Σε Συντήρηση'
+        INACTIVE = 'INACTIVE', 'Ανενεργό'
+        SOLD = 'SOLD', 'Πωλήθηκε'
+    
+    # ========== SECTION 1: IDENTITY ==========
     company = models.ForeignKey(
         Company,
         on_delete=models.CASCADE,
         related_name='fleet_vehicles',
         verbose_name="Εταιρεία"
     )
-    license_plate = models.CharField(max_length=20, unique=True, verbose_name="Πινακίδα")
+    license_plate = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name="Πινακίδα Κυκλοφορίας"
+    )
     vin = models.CharField(
         max_length=17,
         unique=True,
         blank=True,
         null=True,
-        verbose_name="Αριθμός Πλαισίου (VIN)"
+        verbose_name="Αριθμός Πλαισίου (VIN/Chassis No)",
+        help_text="17-ψήφιος κωδικός πλαισίου"
     )
-    make = models.CharField(max_length=50, verbose_name="Μάρκα")
-    model = models.CharField(max_length=50, verbose_name="Μοντέλο")
+    make = models.CharField(max_length=50, verbose_name="Μάρκα (Make)")
+    model = models.CharField(max_length=50, verbose_name="Μοντέλο (Model)")
     color = models.CharField(max_length=30, blank=True, verbose_name="Χρώμα")
     manufacturing_year = models.PositiveIntegerField(
         default=2020,
@@ -341,48 +375,29 @@ class Vehicle(models.Model):
         verbose_name="Έτος Κατασκευής"
     )
     
-    # ========== TYPE ==========
-    vehicle_type = models.CharField(
+    # ========== SECTION 2: CLASSIFICATION ==========
+    vehicle_class = models.CharField(
         max_length=20,
-        choices=VEHICLE_TYPES,
-        verbose_name="Τύπος Οχήματος"
+        choices=VehicleClass.choices,
+        verbose_name="Κλάση Οχήματος",
+        help_text="Καθορίζει τις λειτουργικές δυνατότητες"
+    )
+    body_type = models.CharField(
+        max_length=30,
+        choices=BodyType.choices,
+        verbose_name="Τύπος Αμαξώματος",
+        help_text="Φυσική διαμόρφωση χώρου φορτίου"
     )
     
-    # ========== TECHNICAL SPECS ==========
-    gross_weight_kg = models.IntegerField(
-        null=True,
-        blank=True,
-        validators=[MinValueValidator(0)],
-        verbose_name="Μικτό Βάρος (kg)"
-    )
-    payload_capacity_kg = models.IntegerField(
-        null=True,
-        blank=True,
-        validators=[MinValueValidator(0)],
-        verbose_name="Ωφέλιμο Φορτίο (kg)"
-    )
-    seats = models.IntegerField(
-        null=True,
-        blank=True,
-        validators=[MinValueValidator(0)],
-        verbose_name="Θέσεις Επιβατών",
-        help_text="0 για φορτηγά, >0 για επιβατικά"
-    )
-    length_m = models.DecimalField(
+    # ========== SECTION 3: DIMENSIONS (Critical for Routing) ==========
+    length_total_m = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         null=True,
         blank=True,
         validators=[MinValueValidator(Decimal('0.01'))],
-        verbose_name="Μήκος (m)"
-    )
-    height_m = models.DecimalField(
-        max_digits=4,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        validators=[MinValueValidator(Decimal('0.01'))],
-        verbose_name="Ύψος (m)"
+        verbose_name="Συνολικό Μήκος (m)",
+        help_text="Συμπεριλαμβανομένων προεξοχών"
     )
     width_m = models.DecimalField(
         max_digits=4,
@@ -392,13 +407,53 @@ class Vehicle(models.Model):
         validators=[MinValueValidator(Decimal('0.01'))],
         verbose_name="Πλάτος (m)"
     )
+    height_m = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Ύψος (m)",
+        help_text="Κρίσιμο για γέφυρες και σήραγγες"
+    )
     
-    # ========== ENERGY ==========
+    # ========== SECTION 4: WEIGHTS (From Registration Certificate) ==========
+    gross_weight_kg = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Μικτό Βάρος (kg)",
+        help_text="Μέγιστο επιτρεπόμενο βάρος (από άδεια κυκλοφορίας)"
+    )
+    unladen_weight_kg = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Απόβαρο (kg)",
+        help_text="Βάρος κενού οχήματος"
+    )
+    
+    # ========== SECTION 5: POWER & ENERGY ==========
+    horsepower = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        verbose_name="Ιπποδύναμη (HP)",
+        help_text="Για ελκυστήρες, φορτηγά, λεωφορεία"
+    )
     fuel_type = models.CharField(
         max_length=20,
-        choices=FUEL_TYPES,
-        default='DIESEL',
+        choices=FuelType.choices,
+        default=FuelType.DIESEL,
         verbose_name="Τύπος Καυσίμου"
+    )
+    emission_class = models.CharField(
+        max_length=20,
+        choices=EmissionClass.choices,
+        null=True,
+        blank=True,
+        verbose_name="Κατηγορία Εκπομπών (Euro)",
+        help_text="Κρίσιμο για διεθνή διόδια και περιβαλλοντικές ζώνες"
     )
     tank_capacity = models.DecimalField(
         max_digits=6,
@@ -409,7 +464,23 @@ class Vehicle(models.Model):
         verbose_name="Χωρητικότητα Ρεζερβουάρ (L/kWh)"
     )
     
-    # ========== FINANCIALS ==========
+    # ========== SECTION 6: CAPACITY ==========
+    seats = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Θέσεις Επιβατών",
+        help_text="Για λεωφορεία και επιβατικά"
+    )
+    pallets_capacity = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Χωρητικότητα Παλετών",
+        help_text="Προαιρετικό - για φορτηγά"
+    )
+    
+    # ========== SECTION 7: FINANCIALS (Asset Tracking Only) ==========
     purchase_value = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -429,20 +500,6 @@ class Vehicle(models.Model):
         validators=[MinValueValidator(1)],
         verbose_name="Έτη Απόσβεσης"
     )
-    annual_insurance = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))],
-        verbose_name="Ετήσια Ασφάλιση (€)"
-    )
-    annual_road_tax = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))],
-        verbose_name="Ετήσια Τέλη Κυκλοφορίας (€)"
-    )
     available_hours_per_year = models.IntegerField(
         default=1936,
         validators=[MinValueValidator(1)],
@@ -450,11 +507,11 @@ class Vehicle(models.Model):
         help_text="1936 ώρες = 11 μήνες × 22 ημέρες × 8 ώρες"
     )
     
-    # ========== STATUS & USAGE ==========
+    # ========== SECTION 8: STATUS & USAGE ==========
     status = models.CharField(
         max_length=20,
-        choices=STATUS_CHOICES,
-        default='ACTIVE',
+        choices=Status.choices,
+        default=Status.ACTIVE,
         verbose_name="Κατάσταση"
     )
     current_odometer = models.PositiveIntegerField(
@@ -466,7 +523,7 @@ class Vehicle(models.Model):
         verbose_name="Χιλιόμετρα Τελευταίας Συντήρησης"
     )
     
-    # ========== LEGAL DOCUMENTS ==========
+    # ========== SECTION 9: LEGAL DOCUMENTS ==========
     insurance_expiry = models.DateField(
         null=True,
         blank=True,
@@ -495,12 +552,24 @@ class Vehicle(models.Model):
         ordering = ['license_plate']
         indexes = [
             models.Index(fields=['company', 'status']),
-            models.Index(fields=['vehicle_type']),
+            models.Index(fields=['vehicle_class']),
             models.Index(fields=['license_plate']),
         ]
     
     def __str__(self):
         return f"{self.license_plate} - {self.make} {self.model}"
+    
+    @property
+    def payload_capacity_kg(self):
+        """
+        Calculate payload capacity (Gross - Unladen)
+        
+        Returns:
+            int: Payload capacity in kg, or None if data missing
+        """
+        if self.gross_weight_kg and self.unladen_weight_kg:
+            return self.gross_weight_kg - self.unladen_weight_kg
+        return None
     
     @property
     def annual_depreciation(self):
@@ -516,19 +585,9 @@ class Vehicle(models.Model):
         return (self.purchase_value - self.residual_value) / Decimal(str(self.depreciation_years))
     
     @property
-    def total_annual_fixed_costs(self):
-        """
-        Calculate total annual fixed costs
-        
-        Returns:
-            Decimal: Sum of depreciation, insurance, and road tax
-        """
-        return self.annual_depreciation + self.annual_insurance + self.annual_road_tax
-    
-    @property
     def fixed_cost_per_hour(self):
         """
-        Calculate fixed cost per hour
+        Calculate fixed cost per hour (Depreciation only - other costs in Expense system)
         
         Returns:
             Decimal: Fixed cost per available hour
@@ -536,4 +595,4 @@ class Vehicle(models.Model):
         if self.available_hours_per_year <= 0:
             return Decimal('0.00')
         
-        return self.total_annual_fixed_costs / Decimal(str(self.available_hours_per_year))
+        return self.annual_depreciation / Decimal(str(self.available_hours_per_year))

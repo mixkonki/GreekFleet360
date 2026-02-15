@@ -112,10 +112,10 @@ class IncidentReportAdmin(CompanyRestrictedAdmin):
 @admin.register(Vehicle)
 class VehicleAdmin(CompanyRestrictedAdmin):
     list_display = [
-        'license_plate', 'make', 'model', 'vehicle_type', 'fuel_type',
+        'license_plate', 'make', 'model', 'vehicle_class', 'body_type', 'fuel_type',
         'status', 'company', 'get_annual_depreciation', 'get_hourly_rate'
     ]
-    list_filter = ['company', 'vehicle_type', 'status', 'fuel_type']
+    list_filter = ['company', 'vehicle_class', 'body_type', 'status', 'fuel_type', 'emission_class']
     search_fields = ['license_plate', 'vin', 'make', 'model']
     ordering = ['license_plate']
     
@@ -123,15 +123,27 @@ class VehicleAdmin(CompanyRestrictedAdmin):
         ('Ταυτότητα', {
             'fields': ('company', 'license_plate', 'vin', 'make', 'model', 'color', 'manufacturing_year')
         }),
-        ('Τύπος & Ενέργεια', {
-            'fields': ('vehicle_type', 'fuel_type', 'tank_capacity')
+        ('Κατηγοριοποίηση', {
+            'fields': ('vehicle_class', 'body_type')
         }),
-        ('Τεχνικά Χαρακτηριστικά', {
-            'fields': ('gross_weight_kg', 'payload_capacity_kg', 'seats', 'length_m', 'height_m', 'width_m'),
+        ('Διαστάσεις (Routing)', {
+            'fields': ('length_total_m', 'width_m', 'height_m'),
             'classes': ('collapse',)
         }),
-        ('Οικονομικά Στοιχεία', {
-            'fields': ('purchase_value', 'residual_value', 'depreciation_years', 'annual_insurance', 'annual_road_tax', 'available_hours_per_year')
+        ('Βάρη (Από Άδεια Κυκλοφορίας)', {
+            'fields': ('gross_weight_kg', 'unladen_weight_kg'),
+            'classes': ('collapse',)
+        }),
+        ('Ισχύς & Ενέργεια', {
+            'fields': ('horsepower', 'fuel_type', 'emission_class', 'tank_capacity'),
+            'classes': ('collapse',)
+        }),
+        ('Χωρητικότητα', {
+            'fields': ('seats', 'pallets_capacity'),
+            'classes': ('collapse',)
+        }),
+        ('Οικονομικά Στοιχεία (Asset Tracking)', {
+            'fields': ('purchase_value', 'residual_value', 'depreciation_years', 'available_hours_per_year')
         }),
         ('Κατάσταση & Χρήση', {
             'fields': ('status', 'current_odometer', 'last_service_km')
@@ -151,10 +163,6 @@ class VehicleAdmin(CompanyRestrictedAdmin):
     def get_annual_depreciation(self, obj):
         return f"€{obj.annual_depreciation:,.2f}"
     get_annual_depreciation.short_description = "Ετήσια Απόσβεση"
-    
-    def get_total_fixed_costs(self, obj):
-        return f"€{obj.total_annual_fixed_costs:,.2f}"
-    get_total_fixed_costs.short_description = "Σύνολο Σταθερών Κοστών"
     
     def get_hourly_rate(self, obj):
         return f"€{obj.fixed_cost_per_hour:,.2f}/ώρα"

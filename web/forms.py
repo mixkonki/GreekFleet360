@@ -199,65 +199,64 @@ class EmployeeForm(TailwindFormMixin, forms.ModelForm):
 
 class VehicleForm(TailwindFormMixin, forms.ModelForm):
     """
-    Form for creating/editing Fleet Vehicles
-    Includes all fields: Basic Info, Capacity, and Financials
+    Form for creating/editing Fleet Vehicles - Phase 2
+    Enhanced with VehicleClass, BodyType, Dimensions, Weights, Power
     """
     class Meta:
         model = Vehicle
         fields = [
-            'license_plate', 'make', 'model', 'vehicle_type',
-            'gross_weight_kg', 'payload_capacity_kg', 'seats',
-            'purchase_value', 'residual_value', 'depreciation_years',
-            'annual_insurance', 'annual_road_tax', 'available_hours_per_year'
+            # Section 1: Identity
+            'license_plate', 'vin', 'make', 'model', 'color', 'manufacturing_year',
+            # Section 2: Classification
+            'vehicle_class', 'body_type',
+            # Section 3: Dimensions
+            'length_total_m', 'width_m', 'height_m',
+            # Section 4: Weights
+            'gross_weight_kg', 'unladen_weight_kg',
+            # Section 5: Power & Energy
+            'horsepower', 'fuel_type', 'emission_class', 'tank_capacity',
+            # Section 6: Capacity
+            'seats', 'pallets_capacity',
+            # Section 7: Financials
+            'purchase_value', 'residual_value', 'depreciation_years', 'available_hours_per_year',
+            # Section 8: Status
+            'status', 'current_odometer',
+            # Section 9: Legal
+            'insurance_expiry', 'kteo_expiry', 'adr_expiry',
+            # Notes
+            'notes'
         ]
         widgets = {
             'license_plate': forms.TextInput(attrs={'placeholder': 'π.χ. ΑΒΓ-1234'}),
+            'vin': forms.TextInput(attrs={'placeholder': '17-ψήφιος κωδικός πλαισίου'}),
             'make': forms.TextInput(attrs={'placeholder': 'π.χ. Mercedes-Benz'}),
             'model': forms.TextInput(attrs={'placeholder': 'π.χ. Actros 1845'}),
+            'color': forms.TextInput(attrs={'placeholder': 'π.χ. Λευκό'}),
+            'manufacturing_year': forms.NumberInput(attrs={'placeholder': '2020'}),
+            'length_total_m': forms.NumberInput(attrs={'placeholder': 'π.χ. 13.6', 'step': '0.01'}),
+            'width_m': forms.NumberInput(attrs={'placeholder': 'π.χ. 2.55', 'step': '0.01'}),
+            'height_m': forms.NumberInput(attrs={'placeholder': 'π.χ. 4.0', 'step': '0.01'}),
             'gross_weight_kg': forms.NumberInput(attrs={'placeholder': 'π.χ. 18000'}),
-            'payload_capacity_kg': forms.NumberInput(attrs={'placeholder': 'π.χ. 12000'}),
+            'unladen_weight_kg': forms.NumberInput(attrs={'placeholder': 'π.χ. 6000'}),
+            'horsepower': forms.NumberInput(attrs={'placeholder': 'π.χ. 450'}),
+            'tank_capacity': forms.NumberInput(attrs={'placeholder': 'π.χ. 400', 'step': '0.01'}),
             'seats': forms.NumberInput(attrs={'placeholder': 'π.χ. 2'}),
+            'pallets_capacity': forms.NumberInput(attrs={'placeholder': 'π.χ. 33'}),
             'purchase_value': forms.NumberInput(attrs={'placeholder': 'π.χ. 50000.00', 'step': '0.01'}),
             'residual_value': forms.NumberInput(attrs={'placeholder': 'π.χ. 10000.00', 'step': '0.01'}),
             'depreciation_years': forms.NumberInput(attrs={'placeholder': 'π.χ. 5'}),
-            'annual_insurance': forms.NumberInput(attrs={'placeholder': 'π.χ. 2000.00', 'step': '0.01'}),
-            'annual_road_tax': forms.NumberInput(attrs={'placeholder': 'π.χ. 500.00', 'step': '0.01'}),
             'available_hours_per_year': forms.NumberInput(attrs={'placeholder': '1936'}),
-        }
-        labels = {
-            'license_plate': 'Πινακίδα',
-            'make': 'Μάρκα',
-            'model': 'Μοντέλο',
-            'vehicle_type': 'Τύπος Οχήματος',
-            'gross_weight_kg': 'Μικτό Βάρος (kg)',
-            'payload_capacity_kg': 'Ωφέλιμο Φορτίο (kg)',
-            'seats': 'Θέσεις Επιβατών',
-            'purchase_value': 'Αξία Αγοράς (€)',
-            'residual_value': 'Υπολειμματική Αξία (€)',
-            'depreciation_years': 'Έτη Απόσβεσης',
-            'annual_insurance': 'Ετήσια Ασφάλιση (€)',
-            'annual_road_tax': 'Ετήσια Τέλη Κυκλοφορίας (€)',
-            'available_hours_per_year': 'Διαθέσιμες Ώρες/Έτος',
-        }
-        help_texts = {
-            'available_hours_per_year': '1936 ώρες = 11 μήνες × 22 ημέρες × 8 ώρες',
-            'purchase_value': 'Αξία αγοράς του οχήματος σε ευρώ',
-            'residual_value': 'Υπολειμματική αξία μετά την απόσβεση',
-            'depreciation_years': 'Αριθμός ετών για την απόσβεση',
+            'current_odometer': forms.NumberInput(attrs={'placeholder': 'π.χ. 150000'}),
+            'insurance_expiry': forms.DateInput(attrs={'type': 'date'}),
+            'kteo_expiry': forms.DateInput(attrs={'type': 'date'}),
+            'adr_expiry': forms.DateInput(attrs={'type': 'date'}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Σημειώσεις για το όχημα'}),
         }
     
     def __init__(self, *args, **kwargs):
         # Extract company from kwargs if provided
         company = kwargs.pop('company', None)
         super().__init__(*args, **kwargs)
-        
-        # Add Euro symbol (€) to monetary field labels
-        monetary_fields = ['purchase_value', 'residual_value', 'annual_insurance', 'annual_road_tax']
-        for field_name in monetary_fields:
-            if field_name in self.fields:
-                current_label = self.fields[field_name].label
-                if '€' not in current_label:
-                    self.fields[field_name].label = f"{current_label}"
 
 
 class CompanyForm(TailwindFormMixin, forms.ModelForm):
