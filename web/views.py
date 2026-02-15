@@ -281,7 +281,7 @@ def finance_settings(request):
     total_annual = sum([exp.annual_impact for exp in expenses])
     
     # Get fleet size
-    fleet_size = company.vehicles.filter(status='ACTIVE').count()
+    fleet_size = Vehicle.objects.filter(company=company, status='ACTIVE').count()
     
     # Calculate hourly rate: total_annual / (365 * 24) / max(fleet_size, 1)
     hours_per_year = 365 * 24
