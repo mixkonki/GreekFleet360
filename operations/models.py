@@ -573,6 +573,26 @@ class Vehicle(models.Model):
         verbose_name="Χιλιόμετρα Τελευταίας Συντήρησης"
     )
     
+    # ========== FREIGHT COST INTELLIGENCE ==========
+    average_fuel_consumption = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Μέση Κατανάλωση Καυσίμου (L/100km)",
+        help_text="Υπολογίζεται από ιστορικό ή εισάγεται χειροκίνητα"
+    )
+    average_tire_cost_per_km = models.DecimalField(
+        max_digits=6,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.0001'))],
+        verbose_name="Μέσο Κόστος Ελαστικών ανά km (€/km)",
+        help_text="Π.χ. 0.05 για 5 λεπτά ανά χιλιόμετρο"
+    )
+    
     
     # Metadata
     notes = models.TextField(blank=True, verbose_name="Σημειώσεις")

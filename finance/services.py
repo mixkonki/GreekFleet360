@@ -1,6 +1,9 @@
 """
 Cost Calculator Service - The Brain of GreekFleet 360
 Calculates True Break-Even Point and Trip Profitability
+
+Phase 5: Freight Cost Intelligence System
+Hierarchical Cost Model with 4 Levels
 """
 from decimal import Decimal
 from django.db.models import Avg, Sum, Q
@@ -210,3 +213,220 @@ class CostCalculator:
             Fixed accrual per km (e.g., €0.05/km)
         """
         return self.DEFAULT_MAINTENANCE_PER_KM * self.distance_km
+
+
+# ============================================================================
+# FREIGHT COST INTELLIGENCE SYSTEM - Phase 5
+# ============================================================================
+
+class FreightCostEngine:
+    """
+    Freight Cost Intelligence Engine
+    Implements hierarchical cost model with 4 levels:
+    
+    Level 1: Fixed Costs (Depreciation, Driver Wages)
+    Level 2: Variable Costs per KM (Fuel, Tires, Maintenance)
+    Level 3: Trip-Specific Costs (Tolls, Ferries)
+    Level 4: Overhead Allocation (Office, Management, etc.)
+    """
+    
+    # Default constants
+    DEFAULT_FUEL_PRICE = Decimal('1.75')  # €/L
+    DEFAULT_TIRE_COST_PER_KM = Decimal('0.05')  # €/km
+    DEFAULT_MAINTENANCE_PER_KM = Decimal('0.08')  # €/km
+    
+    def __init__(self, vehicle):
+        """
+        Initialize engine with vehicle
+        
+        Args:
+            vehicle: Vehicle instance (operations.Vehicle)
+        """
+        self.vehicle = vehicle
+        self.company = vehicle.company
+    
+    def calculate_hourly_rate(self):
+        """
+        Calculate hourly rate (Level 1 Fixed + Level 4 Overheads)
+        
+        Formula:
+            Hourly Rate = (Level 1 + Level 4) / (Working Days × Hours × Utilization Rate)
+        
+        Returns:
+            Decimal: Hourly rate in €/hour
+        """
+        # Level 1: Fixed Costs (Depreciation + Driver Wages)
+        annual_depreciation = self.vehicle.annual_depreciation
+        
+        # Get driver wage from assigned employee
+        from core.models import Employee
+        assigned_employee = Employee.objects.filter(
+            company=self.company,
+            assigned_vehicle=self.vehicle,
+            is_active=True
+        ).first()
+        
+        if assigned_employee:
+            annual_driver_cost = assigned_employee.total_annual_cost
+        else:
+            # Default driver cost if no assignment
+            annual_driver_cost = Decimal('25000.00')  # €25k/year
+        
+        level_1_annual = annual_depreciation + annual_driver_cost
+        
+        # Level 4: Overhead Allocation
+        from finance.models import CompanyExpense
+        
+        # Get all company expenses (overheads)
+        overhead_expenses = CompanyExpense.objects.filter(
+            company=self.company,
+            is_active=True
+        )
+        
+        total_annual_overhead = sum([exp.annual_impact for exp in overhead_expenses])
+        
+        # Get fleet size for allocation
+        from operations.models import Vehicle
+        fleet_size = Vehicle.objects.filter(company=self.company, status='ACTIVE').count()
+        
+        if fleet_size > 0:
+            level_4_per_vehicle = total_annual_overhead / Decimal(str(fleet_size))
+        else:
+            level_4_per_vehicle = Decimal('0.00')
+        
+        # Total annual cost per vehicle
+        total_annual_cost = level_1_annual + level_4_per_vehicle
+        
+        # Calculate available hours with utilization rate
+        working_days = self.company.working_days_per_year
+        hours_per_day = self.company.working_hours_per_day
+        utilization = self.company.utilization_rate
+        
+        effective_hours = Decimal(str(working_days)) * Decimal(str(hours_per_day)) * utilization
+        
+        if effective_hours <= 0:
+            return Decimal('0.00')
+        
+        hourly_rate = total_annual_cost / effective_hours
+        return hourly_rate.quantize(Decimal('0.01'))
+    
+    def calculate_km_rate(self, current_fuel_price=None):
+        """
+        Calculate cost per kilometer (Level 2: Variable Costs)
+        
+        Formula:
+            KM Rate = Fuel Cost/km + Tire Cost/km + Maintenance Cost/km
+        
+        Args:
+            current_fuel_price: Current fuel price (€/L), optional
+        
+        Returns:
+            Decimal: Cost per kilometer in €/km
+        """
+        # Fuel cost per km
+        if self.vehicle.average_fuel_consumption:
+            consumption_per_km = self.vehicle.average_fuel_consumption / Decimal('100')
+        else:
+            # Default: 25L/100km
+            consumption_per_km = Decimal('25.0') / Decimal('100')
+        
+        if current_fuel_price is None:
+            # Get latest fuel price from FuelEntry
+            from operations.models import FuelEntry
+            latest_fuel = FuelEntry.objects.filter(
+                vehicle=self.vehicle
+            ).order_by('-date').first()
+            
+            current_fuel_price = latest_fuel.cost_per_liter if latest_fuel else self.DEFAULT_FUEL_PRICE
+        
+        fuel_cost_per_km = consumption_per_km * current_fuel_price
+        
+        # Tire cost per km
+        tire_cost_per_km = self.vehicle.average_tire_cost_per_km or self.DEFAULT_TIRE_COST_PER_KM
+        
+        # Maintenance cost per km
+        maintenance_cost_per_km = self.DEFAULT_MAINTENANCE_PER_KM
+        
+        km_rate = fuel_cost_per_km + tire_cost_per_km + maintenance_cost_per_km
+        return km_rate.quantize(Decimal('0.01'))
+    
+    def estimate_trip_cost(self, distance_km, duration_hours, tolls=Decimal('0.00'), ferries=Decimal('0.00')):
+        """
+        Estimate total trip cost
+        
+        Formula:
+            Total = (Hours × Hourly_Rate) + (Distance × KM_Rate) + Tolls + Ferries
+        
+        Args:
+            distance_km: Trip distance
+            duration_hours: Trip duration
+            tolls: Toll costs
+            ferries: Ferry costs
+        
+        Returns:
+            dict: Detailed cost breakdown
+        """
+        distance = Decimal(str(distance_km))
+        hours = Decimal(str(duration_hours))
+        tolls = Decimal(str(tolls))
+        ferries = Decimal(str(ferries))
+        
+        hourly_rate = self.calculate_hourly_rate()
+        km_rate = self.calculate_km_rate()
+        
+        time_based_cost = hours * hourly_rate
+        distance_based_cost = distance * km_rate
+        total_cost = time_based_cost + distance_based_cost + tolls + ferries
+        
+        return {
+            'hourly_rate': hourly_rate.quantize(Decimal('0.01')),
+            'km_rate': km_rate.quantize(Decimal('0.01')),
+            'time_based_cost': time_based_cost.quantize(Decimal('0.01')),
+            'distance_based_cost': distance_based_cost.quantize(Decimal('0.01')),
+            'tolls': tolls.quantize(Decimal('0.01')),
+            'ferries': ferries.quantize(Decimal('0.01')),
+            'total_cost': total_cost.quantize(Decimal('0.01')),
+        }
+    
+    def calculate_suggested_price(self, distance_km, duration_hours, tolls=Decimal('0.00'), 
+                                  ferries=Decimal('0.00'), margin_percentage=Decimal('15.00'), 
+                                  empty_return_factor=Decimal('1.0')):
+        """
+        Calculate suggested selling price with margin and risk factors
+        
+        Args:
+            distance_km: Trip distance
+            duration_hours: Trip duration
+            tolls: Toll costs
+            ferries: Ferry costs
+            margin_percentage: Desired profit margin (default 15%)
+            empty_return_factor: Risk factor for empty return (1.0 = no return, 0.5 = 50% return load)
+        
+        Returns:
+            dict: Suggested price with breakdown
+        """
+        # Get base cost
+        cost_breakdown = self.estimate_trip_cost(distance_km, duration_hours, tolls, ferries)
+        base_cost = cost_breakdown['total_cost']
+        
+        # Apply empty return factor (if vehicle returns empty, double the distance cost)
+        adjusted_distance_cost = cost_breakdown['distance_based_cost'] * empty_return_factor
+        adjusted_total_cost = (
+            cost_breakdown['time_based_cost'] + 
+            adjusted_distance_cost + 
+            cost_breakdown['tolls'] + 
+            cost_breakdown['ferries']
+        )
+        
+        # Apply margin
+        margin_multiplier = Decimal('1') + (margin_percentage / Decimal('100'))
+        suggested_price = adjusted_total_cost * margin_multiplier
+        
+        return {
+            'base_cost': base_cost.quantize(Decimal('0.01')),
+            'adjusted_cost': adjusted_total_cost.quantize(Decimal('0.01')),
+            'margin_percentage': margin_percentage,
+            'empty_return_factor': empty_return_factor,
+            'suggested_price': suggested_price.quantize(Decimal('0.01')),
+            'breakdown': cost_breakdown,
+        }

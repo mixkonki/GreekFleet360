@@ -49,6 +49,28 @@ class Company(models.Model):
         verbose_name="Τύπος Μεταφορών"
     )
     
+    # ========== FREIGHT COST INTELLIGENCE SETTINGS ==========
+    utilization_rate = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=Decimal('0.85'),
+        validators=[MinValueValidator(Decimal('0.01')), MaxValueValidator(Decimal('1.00'))],
+        verbose_name="Ποσοστό Αξιοποίησης Στόλου",
+        help_text="Π.χ. 0.85 για 85% - Μέσος όρος χρήσης οχημάτων"
+    )
+    working_days_per_year = models.IntegerField(
+        default=252,
+        validators=[MinValueValidator(1), MaxValueValidator(365)],
+        verbose_name="Εργάσιμες Ημέρες/Έτος",
+        help_text="Τυπικά 252 ημέρες (365 - 52 Σαββατοκύριακα - αργίες)"
+    )
+    working_hours_per_day = models.IntegerField(
+        default=8,
+        validators=[MinValueValidator(1), MaxValueValidator(24)],
+        verbose_name="Ώρες Εργασίας/Ημέρα",
+        help_text="Τυπικά 8 ώρες"
+    )
+    
     is_active = models.BooleanField(default=True, verbose_name="Ενεργή")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
