@@ -132,33 +132,27 @@ def vehicle_list(request):
     # Calculate health status for each vehicle
     vehicles_with_health = []
     for vehicle in vehicles:
-        # Calculate days until next KTEO
-        days_until_kteo = (vehicle.kteo_expiry - timezone.now().date()).days if vehicle.kteo_expiry else 0
-        
-        # Calculate days until insurance expiry
-        days_until_insurance = (vehicle.insurance_expiry - timezone.now().date()).days if vehicle.insurance_expiry else 0
-        
-        # Health score (0-100)
+        # Health score (0-100) based on service history only
+        # (Legal document expiries moved to separate tracking system)
         health_score = 100
-        if days_until_kteo < 30:
-            health_score -= 30
-        if days_until_insurance < 30:
-            health_score -= 30
         
         # Check last service
         last_service = ServiceLog.objects.filter(vehicle=vehicle).order_by('-date').first()
         if last_service:
             km_since_service = vehicle.current_odometer - last_service.odometer_reading
             if km_since_service > 10000:
-                health_score -= 40
+                health_score -= 50
+            elif km_since_service > 8000:
+                health_score -= 30
+        elif vehicle.current_odometer > 10000:
+            # No service record but high mileage
+            health_score -= 50
         
         health_score = max(0, health_score)
         
         vehicles_with_health.append({
             'vehicle': vehicle,
             'health_score': health_score,
-            'days_until_kteo': days_until_kteo,
-            'days_until_insurance': days_until_insurance,
         })
     
     # Check if there are more pages
