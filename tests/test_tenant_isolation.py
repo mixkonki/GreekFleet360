@@ -203,6 +203,54 @@ class TenantIsolationTestCase(TestCase):
         # Cleanup
         set_current_company(None)
     
+    def test_middleware_integration(self):
+        """
+        Test full middleware-to-model lifecycle
+        
+        Simulates:
+        1. Request with authenticated user
+        2. Middleware sets company context
+        3. Model manager filters by company
+        4. Middleware cleans up context after response
+        """
+        from core.middleware import CurrentCompanyMiddleware
+        from django.http import HttpResponse
+        
+        # Create mock request
+        factory = RequestFactory()
+        request = factory.get('/dashboard/')
+        request.user = self.user_a  # User A belongs to Company A
+        
+        # Instantiate middleware
+        middleware = CurrentCompanyMiddleware(get_response=lambda r: HttpResponse())
+        
+        # Simulate process_request
+        middleware.process_request(request)
+        
+        # Assert: Company context is set to Company A
+        current_company = get_current_company()
+        self.assertEqual(current_company, self.company_a, "Middleware should set Company A context")
+        
+        # Assert: CompanyExpense.objects.all() returns only Company A expenses
+        expenses = CompanyExpense.objects.all()
+        self.assertEqual(expenses.count(), 2, "Should see only Company A expenses")
+        self.assertIn(self.expense_a1, expenses)
+        self.assertIn(self.expense_a2, expenses)
+        self.assertNotIn(self.expense_b1, expenses)
+        self.assertNotIn(self.expense_b2, expenses)
+        
+        # Simulate process_response (cleanup)
+        response = HttpResponse()
+        middleware.process_response(request, response)
+        
+        # Assert: Company context is cleared
+        current_company_after = get_current_company()
+        self.assertIsNone(current_company_after, "Middleware should clear company context after response")
+        
+        # Assert: After cleanup, no context returns empty queryset
+        expenses_after = CompanyExpense.objects.all()
+        self.assertEqual(expenses_after.count(), 0, "No context should return empty queryset")
+    
     def tearDown(self):
         """
         Clean up thread-local state after each test

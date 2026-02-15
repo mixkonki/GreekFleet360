@@ -7,6 +7,7 @@ from django.core.validators import MinValueValidator
 from decimal import Decimal
 from datetime import timedelta
 from core.models import Company, DriverProfile
+from core.mixins import CompanyScopedManager
 
 
 class ExpenseFamily(models.Model):
@@ -120,6 +121,10 @@ class CompanyExpense(models.Model):
         related_name='company_expenses',
         verbose_name="Εταιρεία"
     )
+    
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()  # Default: auto-filtered by current company
+    all_objects = models.Manager()    # Unscoped: for admin/superuser access
     category = models.ForeignKey(
         ExpenseCategory,
         on_delete=models.PROTECT,
