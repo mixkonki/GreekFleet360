@@ -81,48 +81,93 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Πινακίδα</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Μάρκα</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Τύπος</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Οδηγός</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ωριαίο Σταθερό Κόστος</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ετήσια Απόσβεση</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Όχημα</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Κλάση / Αμάξωμα</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Μάρκα / Μοντέλο</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Προδιαγραφές</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Κατάσταση</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ωριαίο Κόστος</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ενέργειες</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     {% for item in vehicles_with_drivers %}
                     <tr class="hover:bg-gray-50 transition duration-150">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ item.vehicle.license_plate }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">{{ item.vehicle.make }} {{ item.vehicle.model }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                {% if item.vehicle.vehicle_type == 'TRUCK' %}bg-blue-100 text-blue-800
-                                {% elif item.vehicle.vehicle_type == 'BUS' %}bg-green-100 text-green-800
-                                {% elif item.vehicle.vehicle_type == 'VAN' %}bg-yellow-100 text-yellow-800
-                                {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ item.vehicle.get_vehicle_type_display }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {% if item.driver %}
-                                {{ item.driver.first_name }} {{ item.driver.last_name }}
-                            {% else %}
-                                <span class="text-gray-400 italic">Μη ανατεθειμένο</span>
+                        <!-- Vehicle: License Plate + VIN -->
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-bold text-gray-900">{{ item.vehicle.license_plate }}</div>
+                            {% if item.vehicle.vin %}
+                            <div class="text-xs text-gray-500 mt-1">VIN: {{ item.vehicle.vin }}</div>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                        
+                        <!-- Class/Body: Badges -->
+                        <td class="px-6 py-4">
+                            <div class="flex flex-col gap-1">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if item.vehicle.vehicle_class == 'TRACTOR' %}bg-purple-100 text-purple-800
+                                    {% elif item.vehicle.vehicle_class == 'TRUCK' %}bg-blue-100 text-blue-800
+                                    {% elif item.vehicle.vehicle_class == 'SEMI_TRAILER' %}bg-orange-100 text-orange-800
+                                    {% elif item.vehicle.vehicle_class == 'TRAILER' %}bg-yellow-100 text-yellow-800
+                                    {% elif item.vehicle.vehicle_class == 'BUS' %}bg-green-100 text-green-800
+                                    {% elif item.vehicle.vehicle_class == 'VAN' %}bg-indigo-100 text-indigo-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ item.vehicle.get_vehicle_class_display }}
+                                </span>
+                                <span class="px-2 inline-flex text-xs leading-5 font-medium rounded bg-gray-100 text-gray-700">
+                                    {{ item.vehicle.get_body_type_display }}
+                                </span>
+                            </div>
+                        </td>
+                        
+                        <!-- Make/Model/Year -->
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">{{ item.vehicle.make }}</div>
+                            <div class="text-sm text-gray-600">{{ item.vehicle.model }}</div>
+                            <div class="text-xs text-gray-500">{{ item.vehicle.manufacturing_year }}</div>
+                        </td>
+                        
+                        <!-- Specs: Conditional based on vehicle_class -->
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            {% if item.vehicle.vehicle_class == 'TRACTOR' or item.vehicle.vehicle_class == 'TRUCK' or item.vehicle.vehicle_class == 'BUS' %}
+                                <!-- Motorized: Show HP/Emission -->
+                                {% if item.vehicle.horsepower %}
+                                <div><i class="fas fa-tachometer-alt text-gray-400 mr-1"></i>{{ item.vehicle.horsepower }} HP</div>
+                                {% endif %}
+                                {% if item.vehicle.emission_class %}
+                                <div class="text-xs text-gray-500">{{ item.vehicle.get_emission_class_display }}</div>
+                                {% endif %}
+                            {% elif item.vehicle.vehicle_class == 'SEMI_TRAILER' or item.vehicle.vehicle_class == 'TRAILER' %}
+                                <!-- Trailers: Show Dimensions -->
+                                {% if item.vehicle.length_total_m %}
+                                <div><i class="fas fa-ruler-horizontal text-gray-400 mr-1"></i>{{ item.vehicle.length_total_m }}m × {{ item.vehicle.width_m|default:"?" }}m × {{ item.vehicle.height_m|default:"?" }}m</div>
+                                {% endif %}
+                            {% elif item.vehicle.vehicle_class == 'BUS' %}
+                                <!-- Bus: Show Seats -->
+                                {% if item.vehicle.seats %}
+                                <div><i class="fas fa-users text-gray-400 mr-1"></i>{{ item.vehicle.seats }} θέσεις</div>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Status Badge -->
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if item.vehicle.status == 'ACTIVE' %}bg-green-100 text-green-800
+                                {% elif item.vehicle.status == 'MAINTENANCE' %}bg-yellow-100 text-yellow-800
+                                {% elif item.vehicle.status == 'INACTIVE' %}bg-gray-100 text-gray-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ item.vehicle.get_status_display }}
+                            </span>
+                        </td>
+                        
+                        <!-- Hourly Cost -->
+                        <td class="px-6 py-4 text-right">
                             <div class="text-sm font-semibold text-gray-900">{{ item.vehicle.fixed_cost_per_hour|floatformat:2 }} €</div>
                             <div class="text-xs text-gray-500">ανά ώρα</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <div class="text-sm text-gray-900">{{ item.vehicle.annual_depreciation|floatformat:0 }} €</div>
-                            <div class="text-xs text-gray-500">ετησίως</div>
-                        </td>
+                        
+                        <!-- Actions -->
                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                             <button 
                                 hx-get="{% url 'web:fleet_update' item.vehicle.id %}" 

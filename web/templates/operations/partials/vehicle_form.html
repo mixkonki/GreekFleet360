@@ -1,6 +1,6 @@
-<!-- Vehicle Form Modal -->
+<!-- Vehicle Form Modal with Alpine.js Dynamic Fields -->
 <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" id="vehicle-modal">
-    <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white">
         <!-- Modal Header -->
         <div class="flex justify-between items-center pb-3 border-b">
             <h3 class="text-2xl font-semibold text-gray-900">{{ title }}</h3>
@@ -12,30 +12,37 @@
         </div>
 
         <!-- Modal Body -->
-        <form method="post" class="mt-6" hx-post="{% if vehicle_id %}{% url 'web:fleet_update' vehicle_id %}{% else %}{% url 'web:fleet_create' %}{% endif %}" hx-target="#modal-container">
+        <form method="post" 
+              class="mt-6" 
+              hx-post="{% if vehicle_id %}{% url 'web:fleet_update' vehicle_id %}{% else %}{% url 'web:fleet_create' %}{% endif %}" 
+              hx-target="#modal-container"
+              x-data="{ vClass: '{{ form.vehicle_class.value|default:'TRUCK' }}' }">
             {% csrf_token %}
             {% if vehicle_id %}
                 <input type="hidden" name="vehicle_id" value="{{ vehicle_id }}">
             {% endif %}
 
-            <!-- Basic Information Section -->
+            <!-- Section 1: Identity (Always Visible) -->
             <div class="mb-6">
                 <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Βασικά Στοιχεία
+                    <i class="fas fa-id-card text-blue-600 mr-2"></i>
+                    Ταυτότητα Οχήματος
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4">
                     <!-- License Plate -->
                     <div>
                         <label for="{{ form.license_plate.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
                             {{ form.license_plate.label }} <span class="text-red-500">*</span>
                         </label>
                         {{ form.license_plate }}
-                        {% if form.license_plate.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.license_plate.errors.0 }}</p>
-                        {% endif %}
+                    </div>
+
+                    <!-- VIN -->
+                    <div>
+                        <label for="{{ form.vin.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.vin.label }}
+                        </label>
+                        {{ form.vin }}
                     </div>
 
                     <!-- Make -->
@@ -44,9 +51,6 @@
                             {{ form.make.label }} <span class="text-red-500">*</span>
                         </label>
                         {{ form.make }}
-                        {% if form.make.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.make.errors.0 }}</p>
-                        {% endif %}
                     </div>
 
                     <!-- Model -->
@@ -55,89 +59,185 @@
                             {{ form.model.label }} <span class="text-red-500">*</span>
                         </label>
                         {{ form.model }}
-                        {% if form.model.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.model.errors.0 }}</p>
-                        {% endif %}
                     </div>
 
-                    <!-- Vehicle Type -->
+                    <!-- Manufacturing Year -->
                     <div>
-                        <label for="{{ form.vehicle_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.vehicle_type.label }} <span class="text-red-500">*</span>
+                        <label for="{{ form.manufacturing_year.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.manufacturing_year.label }}
                         </label>
-                        {{ form.vehicle_type }}
-                        {% if form.vehicle_type.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.vehicle_type.errors.0 }}</p>
-                        {% endif %}
+                        {{ form.manufacturing_year }}
+                    </div>
+
+                    <!-- Color -->
+                    <div>
+                        <label for="{{ form.color.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.color.label }}
+                        </label>
+                        {{ form.color }}
+                    </div>
+
+                    <!-- Vehicle Class -->
+                    <div>
+                        <label for="{{ form.vehicle_class.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.vehicle_class.label }} <span class="text-red-500">*</span>
+                        </label>
+                        <select name="vehicle_class" id="{{ form.vehicle_class.id_for_label }}" 
+                                x-model="vClass"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                            {% for value, label in form.vehicle_class.field.choices %}
+                            <option value="{{ value }}" {% if form.vehicle_class.value == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Body Type -->
+                    <div>
+                        <label for="{{ form.body_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.body_type.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.body_type }}
                     </div>
                 </div>
             </div>
 
-            <!-- Capacity Section -->
-            <div class="mb-6">
+            <!-- Section 2: Engine & Fuel (Motorized Only) -->
+            <div x-show="['TRACTOR', 'TRUCK', 'BUS', 'VAN', 'CAR'].includes(vClass)" class="mb-6">
                 <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                    </svg>
-                    Χωρητικότητα
+                    <i class="fas fa-cogs text-purple-600 mr-2"></i>
+                    Κινητήρας & Καύσιμο
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Horsepower -->
+                    <div>
+                        <label for="{{ form.horsepower.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.horsepower.label }}
+                        </label>
+                        {{ form.horsepower }}
+                    </div>
+
+                    <!-- Fuel Type -->
+                    <div>
+                        <label for="{{ form.fuel_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.fuel_type.label }}
+                        </label>
+                        {{ form.fuel_type }}
+                    </div>
+
+                    <!-- Emission Class -->
+                    <div>
+                        <label for="{{ form.emission_class.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.emission_class.label }}
+                        </label>
+                        {{ form.emission_class }}
+                    </div>
+
+                    <!-- Tank Capacity -->
+                    <div>
+                        <label for="{{ form.tank_capacity.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.tank_capacity.label }}
+                        </label>
+                        {{ form.tank_capacity }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Cargo Specs (Load Carriers Only) -->
+            <div x-show="['TRUCK', 'SEMI_TRAILER', 'TRAILER'].includes(vClass)" class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <i class="fas fa-ruler-combined text-orange-600 mr-2"></i>
+                    Διαστάσεις & Φορτίο
+                </h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Length -->
+                    <div>
+                        <label for="{{ form.length_total_m.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.length_total_m.label }}
+                        </label>
+                        {{ form.length_total_m }}
+                    </div>
+
+                    <!-- Width -->
+                    <div>
+                        <label for="{{ form.width_m.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.width_m.label }}
+                        </label>
+                        {{ form.width_m }}
+                    </div>
+
+                    <!-- Height -->
+                    <div>
+                        <label for="{{ form.height_m.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.height_m.label }}
+                        </label>
+                        {{ form.height_m }}
+                    </div>
+
+                    <!-- Pallets Capacity -->
+                    <div>
+                        <label for="{{ form.pallets_capacity.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.pallets_capacity.label }}
+                        </label>
+                        {{ form.pallets_capacity }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Weights (All Heavy Vehicles) -->
+            <div x-show="['TRACTOR', 'TRUCK', 'SEMI_TRAILER', 'TRAILER', 'BUS'].includes(vClass)" class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <i class="fas fa-weight text-green-600 mr-2"></i>
+                    Βάρη (Από Άδεια Κυκλοφορίας)
+                </h4>
+                <div class="grid grid-cols-2 gap-4">
                     <!-- Gross Weight -->
                     <div>
                         <label for="{{ form.gross_weight_kg.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
                             {{ form.gross_weight_kg.label }}
                         </label>
                         {{ form.gross_weight_kg }}
-                        {% if form.gross_weight_kg.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.gross_weight_kg.errors.0 }}</p>
-                        {% endif %}
                     </div>
 
-                    <!-- Payload Capacity -->
+                    <!-- Unladen Weight -->
                     <div>
-                        <label for="{{ form.payload_capacity_kg.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.payload_capacity_kg.label }}
+                        <label for="{{ form.unladen_weight_kg.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.unladen_weight_kg.label }}
                         </label>
-                        {{ form.payload_capacity_kg }}
-                        {% if form.payload_capacity_kg.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.payload_capacity_kg.errors.0 }}</p>
-                        {% endif %}
+                        {{ form.unladen_weight_kg }}
                     </div>
+                </div>
+            </div>
 
+            <!-- Section 5: Passengers (Bus/Van/Car Only) -->
+            <div x-show="['BUS', 'VAN', 'CAR'].includes(vClass)" class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <i class="fas fa-users text-indigo-600 mr-2"></i>
+                    Επιβατική Χωρητικότητα
+                </h4>
+                <div class="grid grid-cols-2 gap-4">
                     <!-- Seats -->
                     <div>
                         <label for="{{ form.seats.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
                             {{ form.seats.label }}
                         </label>
                         {{ form.seats }}
-                        {% if form.seats.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.seats.errors.0 }}</p>
-                        {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Financial Section - Assets -->
+            <!-- Section 6: Assets & Legal (Always Visible) -->
             <div class="mb-6">
                 <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Οικονομικά Στοιχεία - Περιουσιακά
+                    <i class="fas fa-euro-sign text-yellow-600 mr-2"></i>
+                    Οικονομικά & Νομικά
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-2 gap-4">
                     <!-- Purchase Value -->
                     <div>
                         <label for="{{ form.purchase_value.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
                             {{ form.purchase_value.label }}
                         </label>
                         {{ form.purchase_value }}
-                        {% if form.purchase_value.help_text %}
-                            <p class="mt-1 text-xs text-gray-500">{{ form.purchase_value.help_text }}</p>
-                        {% endif %}
-                        {% if form.purchase_value.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.purchase_value.errors.0 }}</p>
-                        {% endif %}
                     </div>
 
                     <!-- Residual Value -->
@@ -146,12 +246,6 @@
                             {{ form.residual_value.label }}
                         </label>
                         {{ form.residual_value }}
-                        {% if form.residual_value.help_text %}
-                            <p class="mt-1 text-xs text-gray-500">{{ form.residual_value.help_text }}</p>
-                        {% endif %}
-                        {% if form.residual_value.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.residual_value.errors.0 }}</p>
-                        {% endif %}
                     </div>
 
                     <!-- Depreciation Years -->
@@ -160,45 +254,6 @@
                             {{ form.depreciation_years.label }}
                         </label>
                         {{ form.depreciation_years }}
-                        {% if form.depreciation_years.help_text %}
-                            <p class="mt-1 text-xs text-gray-500">{{ form.depreciation_years.help_text }}</p>
-                        {% endif %}
-                        {% if form.depreciation_years.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.depreciation_years.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Financial Section - Operational -->
-            <div class="mb-6">
-                <h4 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                    </svg>
-                    Οικονομικά Στοιχεία - Λειτουργικά
-                </h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Annual Insurance -->
-                    <div>
-                        <label for="{{ form.annual_insurance.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.annual_insurance.label }}
-                        </label>
-                        {{ form.annual_insurance }}
-                        {% if form.annual_insurance.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.annual_insurance.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-
-                    <!-- Annual Road Tax -->
-                    <div>
-                        <label for="{{ form.annual_road_tax.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.annual_road_tax.label }}
-                        </label>
-                        {{ form.annual_road_tax }}
-                        {% if form.annual_road_tax.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.annual_road_tax.errors.0 }}</p>
-                        {% endif %}
                     </div>
 
                     <!-- Available Hours per Year -->
@@ -207,12 +262,54 @@
                             {{ form.available_hours_per_year.label }}
                         </label>
                         {{ form.available_hours_per_year }}
-                        {% if form.available_hours_per_year.help_text %}
-                            <p class="mt-1 text-xs text-gray-500">{{ form.available_hours_per_year.help_text }}</p>
-                        {% endif %}
-                        {% if form.available_hours_per_year.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.available_hours_per_year.errors.0 }}</p>
-                        {% endif %}
+                    </div>
+
+                    <!-- Status -->
+                    <div>
+                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.status.label }}
+                        </label>
+                        {{ form.status }}
+                    </div>
+
+                    <!-- Current Odometer -->
+                    <div>
+                        <label for="{{ form.current_odometer.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.current_odometer.label }}
+                        </label>
+                        {{ form.current_odometer }}
+                    </div>
+
+                    <!-- Insurance Expiry -->
+                    <div>
+                        <label for="{{ form.insurance_expiry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.insurance_expiry.label }}
+                        </label>
+                        {{ form.insurance_expiry }}
+                    </div>
+
+                    <!-- KTEO Expiry -->
+                    <div>
+                        <label for="{{ form.kteo_expiry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.kteo_expiry.label }}
+                        </label>
+                        {{ form.kteo_expiry }}
+                    </div>
+
+                    <!-- ADR Expiry -->
+                    <div>
+                        <label for="{{ form.adr_expiry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.adr_expiry.label }}
+                        </label>
+                        {{ form.adr_expiry }}
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="col-span-2">
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.notes.label }}
+                        </label>
+                        {{ form.notes }}
                     </div>
                 </div>
             </div>
@@ -228,9 +325,7 @@
                 <button 
                     type="submit" 
                     class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
+                    <i class="fas fa-check mr-1"></i>
                     Αποθήκευση
                 </button>
             </div>

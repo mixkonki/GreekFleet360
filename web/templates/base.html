@@ -45,9 +45,14 @@
                     <span>Dashboard</span>
                 </a>
                 
-                <a href="{% url 'web:vehicle_list' %}" class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors {% if request.resolver_match.url_name == 'vehicle_list' %}bg-gray-800 text-white border-l-4 border-blue-500{% endif %}">
+                <a href="{% url 'web:fleet_list' %}" class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors {% if request.resolver_match.url_name == 'fleet_list' or request.resolver_match.url_name == 'fleet_create' or request.resolver_match.url_name == 'fleet_update' %}bg-gray-800 text-white border-l-4 border-blue-500{% endif %}">
                     <i class="fas fa-truck mr-3"></i>
-                    <span>Στόλος</span>
+                    <span>Διαχείριση Στόλου</span>
+                </a>
+                
+                <a href="{% url 'web:vehicle_list' %}" class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors {% if request.resolver_match.url_name == 'vehicle_list' %}bg-gray-800 text-white border-l-4 border-blue-500{% endif %}">
+                    <i class="fas fa-map-marked-alt mr-3"></i>
+                    <span>Χάρτης Στόλου</span>
                 </a>
                 
                 <a href="{% url 'web:order_list' %}" class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors {% if 'order' in request.resolver_match.url_name %}bg-gray-800 text-white border-l-4 border-blue-500{% endif %}">
