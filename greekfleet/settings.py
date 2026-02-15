@@ -25,20 +25,23 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
+# SECURITY WARNING: don't run with debug turned on in production!
+# Define DEBUG first to use in SECRET_KEY logic
+DEBUG = os.getenv('DEBUG', 'True').lower() in ['true', '1', 't']
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 if not SECRET_KEY:
-    if DEBUG := (os.getenv('DEBUG', 'True') == 'True'):
-        # Development fallback - NEVER use in production
-        SECRET_KEY = 'django-insecure-dev-key-CHANGE-THIS-IN-PRODUCTION'
-    else:
+    if not DEBUG:
         raise ImproperlyConfigured(
-            'SECRET_KEY environment variable is required in production. '
+            'The SECRET_KEY environment variable must be set in production. '
             'Generate a secure key using: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
         )
-else:
-    DEBUG = os.getenv('DEBUG', 'False') == 'True'
+    else:
+        # Development fallback - NEVER use in production
+        SECRET_KEY = 'django-insecure-dev-only-static-key-for-local-development'
+        print('WARNING: Using a default SECRET_KEY for development. Set SECRET_KEY in .env for production.')
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
