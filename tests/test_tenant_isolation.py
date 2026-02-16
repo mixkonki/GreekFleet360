@@ -7,7 +7,8 @@ from django.contrib.auth.models import User
 from core.models import Company
 from core.mixins import set_current_company, get_current_company
 from accounts.models import UserProfile
-from finance.models import CompanyExpense, ExpenseCategory, ExpenseFamily
+from finance.models import CompanyExpense, ExpenseCategory, ExpenseFamily, TransportOrder
+from operations.models import FuelEntry, ServiceLog, Vehicle
 
 
 class TenantIsolationTestCase(TestCase):
@@ -215,6 +216,197 @@ class TenantIsolationTestCase(TestCase):
         
         expenses_after = CompanyExpense.objects.all()
         self.assertEqual(expenses_after.count(), 0, "No context should return empty queryset")
+    
+    def test_transportorder_isolation(self):
+        """
+        Test that TransportOrder respects tenant isolation
+        """
+        # Create TransportOrders for both companies
+        order_a1 = TransportOrder.objects.create(
+            company=self.company_a,
+            customer_name="Customer A1",
+            date='2026-02-01',
+            origin="Athens",
+            destination="Thessaloniki",
+            distance_km=500,
+            agreed_price=1000.00
+        )
+        
+        order_a2 = TransportOrder.objects.create(
+            company=self.company_a,
+            customer_name="Customer A2",
+            date='2026-02-02',
+            origin="Patras",
+            destination="Athens",
+            distance_km=200,
+            agreed_price=400.00
+        )
+        
+        order_b1 = TransportOrder.objects.create(
+            company=self.company_b,
+            customer_name="Customer B1",
+            date='2026-02-01',
+            origin="Heraklion",
+            destination="Chania",
+            distance_km=150,
+            agreed_price=300.00
+        )
+        
+        # Test Company A isolation
+        set_current_company(self.company_a)
+        orders = TransportOrder.objects.all()
+        self.assertEqual(orders.count(), 2, "Company A should see 2 orders")
+        self.assertIn(order_a1, orders)
+        self.assertIn(order_a2, orders)
+        self.assertNotIn(order_b1, orders)
+        
+        # Test all_objects bypass
+        all_orders = TransportOrder.all_objects.all()
+        self.assertEqual(all_orders.count(), 3, "all_objects should return all 3 orders")
+        
+        set_current_company(None)
+    
+    def test_fuelentry_isolation(self):
+        """
+        Test that FuelEntry respects tenant isolation
+        """
+        # Create vehicles for both companies
+        vehicle_a = Vehicle.objects.create(
+            company=self.company_a,
+            license_plate="AAA-1111",
+            make="Mercedes",
+            model="Actros",
+            vehicle_class="TRUCK",
+            body_type="BOX"
+        )
+        
+        vehicle_b = Vehicle.objects.create(
+            company=self.company_b,
+            license_plate="BBB-2222",
+            make="Volvo",
+            model="FH16",
+            vehicle_class="TRUCK",
+            body_type="CURTAIN"
+        )
+        
+        # Create FuelEntries for both companies
+        fuel_a1 = FuelEntry.objects.create(
+            company=self.company_a,
+            vehicle=vehicle_a,
+            date='2026-02-01',
+            liters=100.00,
+            cost_per_liter=1.50,
+            total_cost=150.00,
+            odometer_reading=10000
+        )
+        
+        fuel_a2 = FuelEntry.objects.create(
+            company=self.company_a,
+            vehicle=vehicle_a,
+            date='2026-02-02',
+            liters=120.00,
+            cost_per_liter=1.55,
+            total_cost=186.00,
+            odometer_reading=10500
+        )
+        
+        fuel_b1 = FuelEntry.objects.create(
+            company=self.company_b,
+            vehicle=vehicle_b,
+            date='2026-02-01',
+            liters=150.00,
+            cost_per_liter=1.52,
+            total_cost=228.00,
+            odometer_reading=20000
+        )
+        
+        # Test Company A isolation
+        set_current_company(self.company_a)
+        fuel_entries = FuelEntry.objects.all()
+        self.assertEqual(fuel_entries.count(), 2, "Company A should see 2 fuel entries")
+        self.assertIn(fuel_a1, fuel_entries)
+        self.assertIn(fuel_a2, fuel_entries)
+        self.assertNotIn(fuel_b1, fuel_entries)
+        
+        # Test all_objects bypass
+        all_fuel = FuelEntry.all_objects.all()
+        self.assertEqual(all_fuel.count(), 3, "all_objects should return all 3 fuel entries")
+        
+        set_current_company(None)
+    
+    def test_servicelog_isolation(self):
+        """
+        Test that ServiceLog respects tenant isolation
+        """
+        # Create vehicles for both companies
+        vehicle_a = Vehicle.objects.create(
+            company=self.company_a,
+            license_plate="CCC-3333",
+            make="Scania",
+            model="R450",
+            vehicle_class="TRUCK",
+            body_type="REFRIGERATOR"
+        )
+        
+        vehicle_b = Vehicle.objects.create(
+            company=self.company_b,
+            license_plate="DDD-4444",
+            make="MAN",
+            model="TGX",
+            vehicle_class="TRUCK",
+            body_type="TANKER"
+        )
+        
+        # Create ServiceLogs for both companies
+        service_a1 = ServiceLog.objects.create(
+            company=self.company_a,
+            vehicle=vehicle_a,
+            date='2026-02-01',
+            service_type='REGULAR',
+            odometer_reading=50000,
+            cost_parts=200.00,
+            cost_labor=100.00,
+            total_cost=300.00,
+            description="Regular maintenance"
+        )
+        
+        service_a2 = ServiceLog.objects.create(
+            company=self.company_a,
+            vehicle=vehicle_a,
+            date='2026-02-05',
+            service_type='REPAIR',
+            odometer_reading=51000,
+            cost_parts=500.00,
+            cost_labor=200.00,
+            total_cost=700.00,
+            description="Brake repair"
+        )
+        
+        service_b1 = ServiceLog.objects.create(
+            company=self.company_b,
+            vehicle=vehicle_b,
+            date='2026-02-01',
+            service_type='KTEO',
+            odometer_reading=60000,
+            cost_parts=0.00,
+            cost_labor=150.00,
+            total_cost=150.00,
+            description="KTEO inspection"
+        )
+        
+        # Test Company A isolation
+        set_current_company(self.company_a)
+        service_logs = ServiceLog.objects.all()
+        self.assertEqual(service_logs.count(), 2, "Company A should see 2 service logs")
+        self.assertIn(service_a1, service_logs)
+        self.assertIn(service_a2, service_logs)
+        self.assertNotIn(service_b1, service_logs)
+        
+        # Test all_objects bypass
+        all_services = ServiceLog.all_objects.all()
+        self.assertEqual(all_services.count(), 3, "all_objects should return all 3 service logs")
+        
+        set_current_company(None)
     
     def tearDown(self):
         """

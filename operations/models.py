@@ -6,6 +6,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
 from core.models import Company, DriverProfile
+from core.mixins import CompanyScopedManager
 
 
 class FuelEntry(models.Model):
@@ -19,6 +20,10 @@ class FuelEntry(models.Model):
         related_name='fuel_entries',
         verbose_name="Εταιρεία"
     )
+    
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()
+    all_objects = models.Manager()
     vehicle = models.ForeignKey(
         'Vehicle',
         on_delete=models.CASCADE,
@@ -125,6 +130,10 @@ class ServiceLog(models.Model):
         related_name='service_logs',
         verbose_name="Εταιρεία"
     )
+    
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()
+    all_objects = models.Manager()
     vehicle = models.ForeignKey(
         'Vehicle',
         on_delete=models.CASCADE,

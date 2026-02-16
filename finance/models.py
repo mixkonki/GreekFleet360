@@ -333,6 +333,10 @@ class TransportOrder(models.Model):
         verbose_name="Εταιρεία"
     )
     
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()
+    all_objects = models.Manager()
+    
     customer_name = models.CharField(max_length=200, verbose_name="Όνομα Πελάτη")
     date = models.DateField(verbose_name="Ημερομηνία")
     origin = models.CharField(max_length=200, verbose_name="Αφετηρία")
