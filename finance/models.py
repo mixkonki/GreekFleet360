@@ -7,6 +7,7 @@ from django.core.validators import MinValueValidator
 from decimal import Decimal
 from datetime import timedelta
 from core.models import Company, DriverProfile
+from core.mixins import CompanyScopedManager
 
 
 class ExpenseFamily(models.Model):
@@ -65,7 +66,7 @@ class ExpenseCategory(models.Model):
         verbose_name = "Κατηγορία Εξόδου"
         verbose_name_plural = "Κατηγορίες Εξόδων"
         ordering = ['family', 'name']
-        unique_together = [['company', 'name']]  # Unique per company
+        unique_together = [['company', 'name']]
     
     def __str__(self):
         if self.company:
@@ -120,6 +121,11 @@ class CompanyExpense(models.Model):
         related_name='company_expenses',
         verbose_name="Εταιρεία"
     )
+    
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()
+    all_objects = models.Manager()
+    
     category = models.ForeignKey(
         ExpenseCategory,
         on_delete=models.PROTECT,
@@ -174,7 +180,7 @@ class CompanyExpense(models.Model):
         verbose_name="Ποσό (€)"
     )
     
-    # Date Range (replaces frequency)
+    # Date Range
     start_date = models.DateField(verbose_name="Ημ/νία Έναρξης")
     end_date = models.DateField(
         null=True,
@@ -226,7 +232,7 @@ class CompanyExpense(models.Model):
             Decimal: Monthly cost impact
         """
         if self.expense_type == 'ONE_OFF':
-            return Decimal('0.00')  # Extraordinary one-off costs don't affect regular monthly run-rate
+            return Decimal('0.00')
         
         if self.periodicity == 'MONTHLY':
             return self.amount
@@ -248,7 +254,7 @@ class CompanyExpense(models.Model):
             Decimal: Annual cost impact
         """
         if self.expense_type == 'ONE_OFF':
-            return self.amount  # One-off hits the annual budget once
+            return self.amount
         
         if self.periodicity == 'MONTHLY':
             return self.amount * 12
@@ -291,7 +297,6 @@ class CompanyExpense(models.Model):
         if not self.is_active:
             return Decimal('0.00')
         
-        # Determine overlap between expense range and query period
         overlap_start = max(self.start_date, period_start)
         overlap_end = min(self.end_date or period_end, period_end)
         
@@ -299,16 +304,13 @@ class CompanyExpense(models.Model):
             return Decimal('0.00')
         
         if self.is_amortized and self.end_date:
-            # Amortized: Calculate daily rate and multiply by days in period
             daily_rate = self.get_daily_cost()
             days_in_period = (overlap_end - overlap_start).days + 1
             return daily_rate * Decimal(str(days_in_period))
         else:
-            # Non-amortized: Full amount if period overlaps
             return self.amount
 
 
-# Backward compatibility alias
 RecurringExpense = CompanyExpense
 
 
@@ -331,7 +333,6 @@ class TransportOrder(models.Model):
         verbose_name="Εταιρεία"
     )
     
-    # Customer & Route
     customer_name = models.CharField(max_length=200, verbose_name="Όνομα Πελάτη")
     date = models.DateField(verbose_name="Ημερομηνία")
     origin = models.CharField(max_length=200, verbose_name="Αφετηρία")
@@ -343,7 +344,6 @@ class TransportOrder(models.Model):
         verbose_name="Απόσταση (km)"
     )
     
-    # Revenue
     agreed_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -351,7 +351,6 @@ class TransportOrder(models.Model):
         verbose_name="Συμφωνημένη Τιμή (€)"
     )
     
-    # Assignment
     assigned_vehicle = models.ForeignKey(
         'operations.Vehicle',
         on_delete=models.SET_NULL,
@@ -369,7 +368,6 @@ class TransportOrder(models.Model):
         verbose_name="Οδηγός"
     )
     
-    # Trip Details
     duration_hours = models.DecimalField(
         max_digits=6,
         decimal_places=2,
@@ -393,7 +391,6 @@ class TransportOrder(models.Model):
         verbose_name="Πορθμείο (€)"
     )
     
-    # Status
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
@@ -401,7 +398,6 @@ class TransportOrder(models.Model):
         verbose_name="Κατάσταση"
     )
     
-    # Metadata
     notes = models.TextField(blank=True, verbose_name="Σημειώσεις")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
