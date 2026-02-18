@@ -77,16 +77,60 @@ class ExpenseCategory(models.Model):
 class CostCenter(models.Model):
     """
     Cost Centers for expense allocation
+    Enhanced for Cost Engine with type classification and entity linking
     """
+    TYPE_CHOICES = [
+        ('VEHICLE', 'Όχημα'),
+        ('DRIVER', 'Οδηγός'),
+        ('OVERHEAD', 'Γενικά Έξοδα'),
+        ('ROUTE', 'Διαδρομή'),
+        ('OTHER', 'Άλλο'),
+    ]
+    
     company = models.ForeignKey(
         Company,
         on_delete=models.CASCADE,
         related_name='cost_centers',
         verbose_name="Εταιρεία"
     )
+    
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()
+    all_objects = models.Manager()
+    
     name = models.CharField(max_length=100, verbose_name="Όνομα Κέντρου Κόστους")
     description = models.TextField(blank=True, verbose_name="Περιγραφή")
+    type = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default='OTHER',
+        verbose_name="Τύπος Κέντρου"
+    )
+    
+    # Entity Linking for automated mapping
+    vehicle = models.ForeignKey(
+        'operations.Vehicle',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cost_center',
+        verbose_name="Όχημα",
+        help_text="Σύνδεση με όχημα για αυτόματη κατανομή"
+    )
+    driver = models.ForeignKey(
+        DriverProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cost_center',
+        verbose_name="Οδηγός",
+        help_text="Σύνδεση με οδηγό για αυτόματη κατανομή"
+    )
+    
     is_active = models.BooleanField(default=True, verbose_name="Ενεργό")
+    
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     
     class Meta:
         verbose_name = "Κέντρο Κόστους"
@@ -418,3 +462,122 @@ class TransportOrder(models.Model):
     
     def __str__(self):
         return f"{self.customer_name} - {self.origin} → {self.destination} - {self.date}"
+
+
+class CostItem(models.Model):
+    """
+    Cost Item - Defines types of costs for financial intelligence
+    E.g., Insurance, Fuel, Driver Social Security, Maintenance
+    """
+    CATEGORY_CHOICES = [
+        ('FIXED', 'Σταθερό'),
+        ('VARIABLE', 'Μεταβλητό'),
+        ('INDIRECT', 'Έμμεσο'),
+    ]
+    
+    UNIT_CHOICES = [
+        ('MONTH', 'Μήνας'),
+        ('KM', 'Χιλιόμετρο'),
+        ('HOUR', 'Ώρα'),
+        ('TRIP', 'Δρομολόγιο'),
+    ]
+    
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='cost_items',
+        verbose_name="Εταιρεία"
+    )
+    
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()
+    all_objects = models.Manager()
+    
+    name = models.CharField(max_length=100, verbose_name="Όνομα Κόστους")
+    description = models.TextField(blank=True, verbose_name="Περιγραφή")
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        verbose_name="Κατηγορία Κόστους"
+    )
+    unit = models.CharField(
+        max_length=20,
+        choices=UNIT_CHOICES,
+        verbose_name="Μονάδα Μέτρησης"
+    )
+    
+    is_active = models.BooleanField(default=True, verbose_name="Ενεργό")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Στοιχείο Κόστους"
+        verbose_name_plural = "Στοιχεία Κόστους"
+        unique_together = ['company', 'name']
+        ordering = ['company', 'category', 'name']
+        indexes = [
+            models.Index(fields=['company', 'category']),
+            models.Index(fields=['is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_category_display()}) - {self.get_unit_display()}"
+
+
+class CostPosting(models.Model):
+    """
+    Cost Posting - Actual transaction/allocation records
+    Links cost items to cost centers for a specific period
+    """
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='cost_postings',
+        verbose_name="Εταιρεία"
+    )
+    
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()
+    all_objects = models.Manager()
+    
+    cost_center = models.ForeignKey(
+        CostCenter,
+        on_delete=models.CASCADE,
+        related_name='cost_postings',
+        verbose_name="Κέντρο Κόστους"
+    )
+    cost_item = models.ForeignKey(
+        CostItem,
+        on_delete=models.PROTECT,
+        related_name='cost_postings',
+        verbose_name="Στοιχείο Κόστους"
+    )
+    
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Ποσό (€)"
+    )
+    
+    period_start = models.DateField(verbose_name="Έναρξη Περιόδου")
+    period_end = models.DateField(verbose_name="Λήξη Περιόδου")
+    
+    notes = models.TextField(blank=True, verbose_name="Σημειώσεις")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Καταχώρηση Κόστους"
+        verbose_name_plural = "Καταχωρήσεις Κόστους"
+        ordering = ['-period_start', '-created_at']
+        indexes = [
+            models.Index(fields=['company', '-period_start']),
+            models.Index(fields=['cost_center', '-period_start']),
+            models.Index(fields=['cost_item']),
+        ]
+    
+    def __str__(self):
+        return f"{self.cost_item.name} → {self.cost_center.name}: €{self.amount} ({self.period_start})"

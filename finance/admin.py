@@ -4,7 +4,7 @@ Django Admin Configuration for Finance App
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 from django.utils.html import format_html
-from .models import ExpenseFamily, ExpenseCategory, CostCenter, CompanyExpense, TransportOrder
+from .models import ExpenseFamily, ExpenseCategory, CostCenter, CompanyExpense, TransportOrder, CostItem, CostPosting
 from .services import CostCalculator
 
 # Import CompanyRestrictedAdmin from core
@@ -39,10 +39,51 @@ class ExpenseCategoryAdmin(ModelAdmin):
 
 @admin.register(CostCenter)
 class CostCenterAdmin(CompanyRestrictedAdmin):
-    list_display = ['name', 'company', 'is_active']
-    list_filter = ['company', 'is_active']
+    list_display = ['name', 'type', 'company', 'vehicle', 'driver', 'is_active']
+    list_filter = ['company', 'type', 'is_active']
     search_fields = ['name', 'description']
     ordering = ['company', 'name']
+    
+    fieldsets = (
+        ('Βασικές Πληροφορίες', {
+            'fields': ('company', 'name', 'type', 'description')
+        }),
+        ('Σύνδεση Οντοτήτων', {
+            'fields': ('vehicle', 'driver'),
+            'description': 'Αυτόματη κατανομή κόστους σε όχημα ή οδηγό'
+        }),
+        ('Κατάσταση', {
+            'fields': ('is_active',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        """Override to use all_objects for superusers"""
+        if request.user.is_superuser:
+            return self.model.all_objects.all()
+        return self.model.objects.all()
+    
+    def has_change_permission(self, request, obj=None):
+        """Verify user can only change their company's records"""
+        if request.user.is_superuser:
+            return True
+        if obj and hasattr(request, 'company') and obj.company != request.company:
+            return False
+        return super().has_change_permission(request, obj)
+    
+    def has_delete_permission(self, request, obj=None):
+        """Verify user can only delete their company's records"""
+        if request.user.is_superuser:
+            return True
+        if obj and hasattr(request, 'company') and obj.company != request.company:
+            return False
+        return super().has_delete_permission(request, obj)
+    
+    def save_model(self, request, obj, form, change):
+        """Auto-set company for new records"""
+        if not obj.pk and hasattr(request, 'company'):
+            obj.company = request.company
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(CompanyExpense)
@@ -265,3 +306,101 @@ class TransportOrderAdmin(CompanyRestrictedAdmin):
         if obj:
             extra_context['profitability_breakdown'] = self.get_profitability_breakdown(obj)
         return super().change_view(request, object_id, form_url, extra_context)
+
+
+@admin.register(CostItem)
+class CostItemAdmin(CompanyRestrictedAdmin):
+    list_display = ['name', 'category', 'unit', 'company', 'is_active']
+    list_filter = ['company', 'category', 'unit', 'is_active']
+    search_fields = ['name', 'description']
+    ordering = ['company', 'category', 'name']
+    
+    fieldsets = (
+        ('Βασικές Πληροφορίες', {
+            'fields': ('company', 'name', 'description')
+        }),
+        ('Κατηγοριοποίηση', {
+            'fields': ('category', 'unit')
+        }),
+        ('Κατάσταση', {
+            'fields': ('is_active',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        """Override to use all_objects for superusers"""
+        if request.user.is_superuser:
+            return self.model.all_objects.all()
+        return self.model.objects.all()
+    
+    def has_change_permission(self, request, obj=None):
+        """Verify user can only change their company's records"""
+        if request.user.is_superuser:
+            return True
+        if obj and hasattr(request, 'company') and obj.company != request.company:
+            return False
+        return super().has_change_permission(request, obj)
+    
+    def has_delete_permission(self, request, obj=None):
+        """Verify user can only delete their company's records"""
+        if request.user.is_superuser:
+            return True
+        if obj and hasattr(request, 'company') and obj.company != request.company:
+            return False
+        return super().has_delete_permission(request, obj)
+    
+    def save_model(self, request, obj, form, change):
+        """Auto-set company for new records"""
+        if not obj.pk and hasattr(request, 'company'):
+            obj.company = request.company
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(CostPosting)
+class CostPostingAdmin(CompanyRestrictedAdmin):
+    list_display = ['cost_item', 'cost_center', 'amount', 'period_start', 'period_end', 'company']
+    list_filter = ['company', 'cost_center', 'cost_item', 'period_start']
+    search_fields = ['cost_item__name', 'cost_center__name', 'notes']
+    date_hierarchy = 'period_start'
+    ordering = ['-period_start', '-created_at']
+    
+    fieldsets = (
+        ('Βασικές Πληροφορίες', {
+            'fields': ('company', 'cost_center', 'cost_item')
+        }),
+        ('Οικονομικά', {
+            'fields': ('amount', 'period_start', 'period_end')
+        }),
+        ('Σημειώσεις', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        """Override to use all_objects for superusers"""
+        if request.user.is_superuser:
+            return self.model.all_objects.all()
+        return self.model.objects.all()
+    
+    def has_change_permission(self, request, obj=None):
+        """Verify user can only change their company's records"""
+        if request.user.is_superuser:
+            return True
+        if obj and hasattr(request, 'company') and obj.company != request.company:
+            return False
+        return super().has_change_permission(request, obj)
+    
+    def has_delete_permission(self, request, obj=None):
+        """Verify user can only delete their company's records"""
+        if request.user.is_superuser:
+            return True
+        if obj and hasattr(request, 'company') and obj.company != request.company:
+            return False
+        return super().has_delete_permission(request, obj)
+    
+    def save_model(self, request, obj, form, change):
+        """Auto-set company for new records"""
+        if not obj.pk and hasattr(request, 'company'):
+            obj.company = request.company
+        super().save_model(request, obj, form, change)
