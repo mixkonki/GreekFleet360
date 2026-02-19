@@ -7,7 +7,7 @@ from django.utils import timezone
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from core.models import Company
-from finance.services.cost_engine.calculator import CostEngineCalculator
+from finance.services.cost_engine import calculate_company_costs
 from finance.services.cost_engine.persist import CostEnginePersistence
 
 
