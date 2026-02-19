@@ -12,7 +12,7 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from core.models import Company, Employee
 from finance.models import TransportOrder, CompanyExpense, CostCenter, ExpenseCategory
-from finance.services import CostCalculator
+from finance.legacy_services import CostCalculator
 from operations.models import FuelEntry, ServiceLog, Vehicle
 from accounts.models import UserProfile
 from .forms import CompanyExpenseForm, CostCenterForm, TransportOrderForm, FuelEntryForm, VehicleForm, CompanyForm

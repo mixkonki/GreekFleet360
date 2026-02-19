@@ -365,6 +365,11 @@ class Vehicle(models.Model):
         related_name='fleet_vehicles',
         verbose_name="Εταιρεία"
     )
+    
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()
+    all_objects = models.Manager()
+    
     license_plate = models.CharField(
         max_length=20,
         unique=True,
