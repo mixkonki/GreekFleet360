@@ -29,6 +29,94 @@ def get_current_company():
     return getattr(_thread_locals, 'company', None)
 
 
+class CompanyScopedQuerySet(models.QuerySet):
+    """
+    Custom QuerySet that auto-assigns company on create operations
+    
+    Automatically sets company field when creating objects if:
+    1. tenant_context is active (get_current_company() returns a company)
+    2. company field is not explicitly provided
+    """
+    
+    def create(self, **kwargs):
+        """
+        Override create to auto-assign company
+        
+        Args:
+            **kwargs: Model field values
+        
+        Returns:
+            Created model instance
+        """
+        current_company = get_current_company()
+        
+        # Auto-assign company if context is active and company not provided
+        if current_company and 'company' not in kwargs:
+            kwargs['company'] = current_company
+        
+        return super().create(**kwargs)
+    
+    def bulk_create(self, objs, **kwargs):
+        """
+        Override bulk_create to auto-assign company
+        
+        Args:
+            objs: List of model instances
+            **kwargs: Additional arguments
+        
+        Returns:
+            List of created instances
+        """
+        current_company = get_current_company()
+        
+        # Auto-assign company to objects that don't have it set
+        if current_company:
+            for obj in objs:
+                # Check if company_id is not set (safer than accessing company FK)
+                if not obj.company_id:
+                    obj.company = current_company
+        
+        return super().bulk_create(objs, **kwargs)
+    
+    def get_or_create(self, defaults=None, **kwargs):
+        """
+        Override get_or_create to auto-assign company
+        
+        Args:
+            defaults: Default values for create
+            **kwargs: Lookup parameters
+        
+        Returns:
+            Tuple of (object, created)
+        """
+        current_company = get_current_company()
+        
+        # Auto-assign company if context is active and company not in lookup
+        if current_company and 'company' not in kwargs:
+            kwargs['company'] = current_company
+        
+        return super().get_or_create(defaults=defaults, **kwargs)
+    
+    def update_or_create(self, defaults=None, **kwargs):
+        """
+        Override update_or_create to auto-assign company
+        
+        Args:
+            defaults: Default values for create/update
+            **kwargs: Lookup parameters
+        
+        Returns:
+            Tuple of (object, created)
+        """
+        current_company = get_current_company()
+        
+        # Auto-assign company if context is active and company not in lookup
+        if current_company and 'company' not in kwargs:
+            kwargs['company'] = current_company
+        
+        return super().update_or_create(defaults=defaults, **kwargs)
+
+
 class CompanyScopedManager(models.Manager):
     """
     Custom Manager that automatically filters querysets by company
@@ -45,9 +133,9 @@ class CompanyScopedManager(models.Manager):
         Override get_queryset to filter by current company
         
         Returns:
-            QuerySet filtered by company, or empty queryset if no context
+            CompanyScopedQuerySet filtered by company, or empty queryset if no context
         """
-        queryset = super().get_queryset()
+        queryset = CompanyScopedQuerySet(self.model, using=self._db)
         current_company = get_current_company()
         
         if current_company:
