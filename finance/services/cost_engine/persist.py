@@ -1,22 +1,27 @@
 """
 Cost Engine Persistence Layer
-Handles saving calculation results to database snapshots
+Handles saving calculation results to database snapshots.
+
+Guardrails:
+- Only scoped managers (objects) are allowed in this module.
+- This module must be used inside tenant_context(company) so that ORM scoping applies.
 """
 
 from __future__ import annotations
 
-from decimal import Decimal
 from datetime import date
+from decimal import Decimal
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
+from django.conf import settings
 from django.db import transaction
 
 from finance.models import (
+    Company,
+    CostCenter,
     CostRateSnapshot,
     OrderCostBreakdown,
     TransportOrder,
-    CostCenter,
-    Company,
 )
 
 
@@ -39,7 +44,7 @@ def _iter_mapping_or_list(
 
     Supports:
       - dict: {id: data_dict}
-      - list: [data_dict, data_dict, ...] (id inferred from keys inside dict)
+      - list/tuple: [data_dict, data_dict, ...] (id inferred from keys inside dict if needed)
     """
     if isinstance(payload, dict):
         for k, v in payload.items():
@@ -55,13 +60,36 @@ def _iter_mapping_or_list(
             yield None, item
         return
 
-    # Unknown -> nothing
     return []
+
+
+def _require_tenant_context() -> None:
+    """
+    Fail-fast in DEBUG if tenant context is missing.
+    This avoids silent empty queryset behavior during development/tests.
+    """
+    if not settings.DEBUG:
+        return
+    try:
+        from core.tenant_context import get_current_company  # type: ignore
+
+        if get_current_company() is None:
+            raise RuntimeError(
+                "Tenant context is missing. Use persistence inside: with tenant_context(company): ..."
+            )
+    except ImportError:
+        # If you don't expose get_current_company, we cannot assert here.
+        # Scoping will still protect data, but missing context may look like empty data.
+        return
 
 
 class CostEnginePersistence:
     """
     Persistence service for Cost Engine calculations.
+
+    IMPORTANT:
+    - Must be called within tenant_context(company).
+    - Uses scoped managers only (objects).
     """
 
     @staticmethod
@@ -74,49 +102,39 @@ class CostEnginePersistence:
     ) -> List[CostRateSnapshot]:
         """
         Accepts either:
-          A) cost_center_rates dict (tests format)
+          A) dict format (tests):
              { cost_center_id: { total_cost, total_km, rate_per_km, ... } }
              -> creates 4 snapshots per cost center: KM/HOUR/TRIP/REVENUE
-
-          B) snapshots list (calculator format)
+          B) list format (calculator):
              [
                {cost_center_id, basis_unit, total_cost, total_units, rate, status},
                ...
              ]
              -> creates exactly those snapshots.
         """
+        _require_tenant_context()
+
         created: List[CostRateSnapshot] = []
 
-        # Peek first element to detect format
-        is_dict_format = isinstance(cost_center_rates_or_snapshots, dict)
-
-        # If it's a list/tuple, check if items look like dict snapshots
-        if not is_dict_format and isinstance(cost_center_rates_or_snapshots, (list, tuple)):
-            first = cost_center_rates_or_snapshots[0] if cost_center_rates_or_snapshots else None
-            # If first is dict and has basis_unit => snapshot list
-            if isinstance(first, dict) and ("basis_unit" in first or "rate" in first or "total_units" in first):
-                is_dict_format = False
-            else:
-                # Could be malformed; treat as snapshot list anyway (will skip non-dicts)
-                is_dict_format = False
-
-        for maybe_id, data in _iter_mapping_or_list(cost_center_rates_or_snapshots):
-            # ----------------------------
-            # A) dict-of-dicts format
-            # ----------------------------
-            if isinstance(cost_center_rates_or_snapshots, dict):
+        # ----------------------------
+        # A) dict-of-dicts format
+        # ----------------------------
+        if isinstance(cost_center_rates_or_snapshots, dict):
+            for maybe_id, data in _iter_mapping_or_list(cost_center_rates_or_snapshots):
                 cost_center_id = maybe_id
                 rates = data
 
                 if not cost_center_id or not isinstance(rates, dict):
                     continue
 
+                # Use scoped manager + explicit company filter (belt & suspenders)
                 try:
-                    cost_center = CostCenter.all_objects.get(id=cost_center_id, company=company)
+                    cost_center = CostCenter.objects.get(id=cost_center_id, company=company)
                 except CostCenter.DoesNotExist:
                     continue
 
-                # Build snapshots for each basis unit (as your original tests expect)
+                total_cost = _to_decimal(rates.get("total_cost"))
+
                 basis_units = [
                     ("KM", rates.get("total_km", Decimal("0")), rates.get("rate_per_km", Decimal("0"))),
                     ("HOUR", rates.get("total_hours", Decimal("0")), rates.get("rate_per_hour", Decimal("0"))),
@@ -124,11 +142,9 @@ class CostEnginePersistence:
                     ("REVENUE", rates.get("total_revenue", Decimal("0")), rates.get("rate_per_revenue", Decimal("0"))),
                 ]
 
-                total_cost = _to_decimal(rates.get("total_cost"))
-
                 for basis_unit, total_units, rate in basis_units:
-                    # Replace existing snapshot
-                    CostRateSnapshot.all_objects.filter(
+                    # Replace existing snapshot for this key
+                    CostRateSnapshot.objects.filter(
                         company=company,
                         period_start=period_start,
                         period_end=period_end,
@@ -137,11 +153,10 @@ class CostEnginePersistence:
                     ).delete()
 
                     status = rates.get("status") or "OK"
-                    # Keep your previous missing-activity behavior if no units
                     if _to_decimal(total_units) == Decimal("0") and basis_unit in ("KM", "HOUR", "TRIP"):
                         status = "MISSING_ACTIVITY"
 
-                    obj = CostRateSnapshot.all_objects.create(
+                    obj = CostRateSnapshot.objects.create(
                         company=company,
                         period_start=period_start,
                         period_end=period_end,
@@ -154,11 +169,12 @@ class CostEnginePersistence:
                     )
                     created.append(obj)
 
-                continue
+            return created
 
-            # ----------------------------
-            # B) list-of-dicts snapshot format
-            # ----------------------------
+        # ----------------------------
+        # B) list-of-dicts snapshot format
+        # ----------------------------
+        for _, data in _iter_mapping_or_list(cost_center_rates_or_snapshots):
             snap = data
             if not isinstance(snap, dict):
                 continue
@@ -166,20 +182,21 @@ class CostEnginePersistence:
             cost_center_id = snap.get("cost_center_id", snap.get("cost_center"))
             if cost_center_id is None:
                 continue
-
             try:
                 cost_center_id = int(cost_center_id)
             except Exception:
                 continue
 
             try:
-                cost_center = CostCenter.all_objects.get(id=cost_center_id, company=company)
+                cost_center = CostCenter.objects.get(id=cost_center_id, company=company)
             except CostCenter.DoesNotExist:
                 continue
 
-            basis_unit = snap.get("basis_unit") or "KM"
+            basis_unit = (snap.get("basis_unit") or "KM")
+            basis_unit = str(basis_unit).upper()
 
-            CostRateSnapshot.all_objects.filter(
+            # Replace existing snapshot
+            CostRateSnapshot.objects.filter(
                 company=company,
                 period_start=period_start,
                 period_end=period_end,
@@ -187,16 +204,21 @@ class CostEnginePersistence:
                 basis_unit=basis_unit,
             ).delete()
 
-            obj = CostRateSnapshot.all_objects.create(
+            total_units = _to_decimal(snap.get("total_units"))
+            status = snap.get("status") or "OK"
+            if total_units == Decimal("0") and basis_unit in ("KM", "HOUR", "TRIP"):
+                status = "MISSING_ACTIVITY"
+
+            obj = CostRateSnapshot.objects.create(
                 company=company,
                 period_start=period_start,
                 period_end=period_end,
                 cost_center=cost_center,
                 basis_unit=basis_unit,
                 total_cost=_to_decimal(snap.get("total_cost")),
-                total_units=_to_decimal(snap.get("total_units")),
+                total_units=total_units,
                 rate=_to_decimal(snap.get("rate")),
-                status=snap.get("status") or "OK",
+                status=status,
             )
             created.append(obj)
 
@@ -215,31 +237,34 @@ class CostEnginePersistence:
           A) dict format (tests): { order_id: {...} }
           B) list format (calculator): [ {order_id:.., ...}, ... ]
         """
+        _require_tenant_context()
+
         created: List[OrderCostBreakdown] = []
 
+        # A) dict format
         if isinstance(order_breakdowns_or_list, dict):
-            # A) dict format
             for order_id_any, breakdown_data in order_breakdowns_or_list.items():
                 try:
                     order_id = int(order_id_any)
                 except Exception:
                     continue
+
                 if not isinstance(breakdown_data, dict):
                     continue
 
                 try:
-                    transport_order = TransportOrder.all_objects.get(id=order_id, company=company)
+                    transport_order = TransportOrder.objects.get(id=order_id, company=company)
                 except TransportOrder.DoesNotExist:
                     continue
 
-                OrderCostBreakdown.all_objects.filter(
+                OrderCostBreakdown.objects.filter(
                     company=company,
                     transport_order=transport_order,
                     period_start=period_start,
                     period_end=period_end,
                 ).delete()
 
-                obj = OrderCostBreakdown.all_objects.create(
+                obj = OrderCostBreakdown.objects.create(
                     company=company,
                     transport_order=transport_order,
                     period_start=period_start,
@@ -261,27 +286,29 @@ class CostEnginePersistence:
         for b in order_breakdowns_or_list or []:
             if not isinstance(b, dict):
                 continue
+
             order_id = b.get("order_id", b.get("transport_order_id"))
             if not order_id:
                 continue
+
             try:
                 order_id = int(order_id)
             except Exception:
                 continue
 
             try:
-                transport_order = TransportOrder.all_objects.get(id=order_id, company=company)
+                transport_order = TransportOrder.objects.get(id=order_id, company=company)
             except TransportOrder.DoesNotExist:
                 continue
 
-            OrderCostBreakdown.all_objects.filter(
+            OrderCostBreakdown.objects.filter(
                 company=company,
                 transport_order=transport_order,
                 period_start=period_start,
                 period_end=period_end,
             ).delete()
 
-            obj = OrderCostBreakdown.all_objects.create(
+            obj = OrderCostBreakdown.objects.create(
                 company=company,
                 transport_order=transport_order,
                 period_start=period_start,
@@ -307,8 +334,9 @@ class CostEnginePersistence:
         cost_center: CostCenter,
         basis_unit: str,
     ) -> Optional[CostRateSnapshot]:
+        _require_tenant_context()
         try:
-            return CostRateSnapshot.all_objects.get(
+            return CostRateSnapshot.objects.get(
                 company=company,
                 period_start=period_start,
                 period_end=period_end,
@@ -325,8 +353,9 @@ class CostEnginePersistence:
         period_end: date,
         transport_order: TransportOrder,
     ) -> Optional[OrderCostBreakdown]:
+        _require_tenant_context()
         try:
-            return OrderCostBreakdown.all_objects.get(
+            return OrderCostBreakdown.objects.get(
                 company=company,
                 transport_order=transport_order,
                 period_start=period_start,
@@ -341,8 +370,9 @@ class CostEnginePersistence:
         period_start: date,
         period_end: date,
     ) -> List[CostRateSnapshot]:
+        _require_tenant_context()
         return list(
-            CostRateSnapshot.all_objects.filter(
+            CostRateSnapshot.objects.filter(
                 company=company,
                 period_start=period_start,
                 period_end=period_end,
@@ -355,8 +385,9 @@ class CostEnginePersistence:
         period_start: date,
         period_end: date,
     ) -> List[OrderCostBreakdown]:
+        _require_tenant_context()
         return list(
-            OrderCostBreakdown.all_objects.filter(
+            OrderCostBreakdown.objects.filter(
                 company=company,
                 period_start=period_start,
                 period_end=period_end,
