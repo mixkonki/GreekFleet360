@@ -581,3 +581,206 @@ class CostPosting(models.Model):
     
     def __str__(self):
         return f"{self.cost_item.name} → {self.cost_center.name}: €{self.amount} ({self.period_start})"
+
+
+class CostRateSnapshot(models.Model):
+    """
+    Cost Rate Snapshot - Calculated rates per CostCenter for a period
+    Stores the result of cost engine calculations for historical tracking
+    """
+    STATUS_CHOICES = [
+        ('OK', 'OK'),
+        ('MISSING_ACTIVITY', 'Χωρίς Δραστηριότητα'),
+    ]
+    
+    BASIS_UNIT_CHOICES = [
+        ('KM', 'Χιλιόμετρο'),
+        ('HOUR', 'Ώρα'),
+        ('TRIP', 'Δρομολόγιο'),
+        ('REVENUE', 'Έσοδα'),
+    ]
+    
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='cost_rate_snapshots',
+        verbose_name="Εταιρεία"
+    )
+    
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()
+    all_objects = models.Manager()
+    
+    period_start = models.DateField(verbose_name="Έναρξη Περιόδου")
+    period_end = models.DateField(verbose_name="Λήξη Περιόδου")
+    
+    cost_center = models.ForeignKey(
+        CostCenter,
+        on_delete=models.CASCADE,
+        related_name='rate_snapshots',
+        verbose_name="Κέντρο Κόστους"
+    )
+    
+    basis_unit = models.CharField(
+        max_length=20,
+        choices=BASIS_UNIT_CHOICES,
+        verbose_name="Μονάδα Βάσης"
+    )
+    
+    total_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Συνολικό Κόστος (€)"
+    )
+    
+    total_units = models.DecimalField(
+        max_digits=12,
+        decimal_places=3,
+        default=Decimal('0.000'),
+        verbose_name="Συνολικές Μονάδες"
+    )
+    
+    rate = models.DecimalField(
+        max_digits=12,
+        decimal_places=6,
+        default=Decimal('0.000000'),
+        verbose_name="Τιμή ανά Μονάδα (€)"
+    )
+    
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='OK',
+        verbose_name="Κατάσταση"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Στιγμιότυπο Τιμής Κόστους"
+        verbose_name_plural = "Στιγμιότυπα Τιμών Κόστους"
+        ordering = ['-period_start', '-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['company', 'period_start', 'period_end', 'cost_center', 'basis_unit'],
+                name='unique_cost_rate_snapshot'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['company', '-period_start']),
+            models.Index(fields=['cost_center', '-period_start']),
+        ]
+    
+    def __str__(self):
+        return f"{self.cost_center.name} - {self.basis_unit}: €{self.rate}/unit ({self.period_start})"
+
+
+class OrderCostBreakdown(models.Model):
+    """
+    Order Cost Breakdown - Detailed cost analysis per TransportOrder
+    Links calculated costs to specific orders for profitability tracking
+    """
+    STATUS_CHOICES = [
+        ('OK', 'OK'),
+        ('MISSING_RATE', 'Λείπει Τιμή'),
+    ]
+    
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='order_cost_breakdowns',
+        verbose_name="Εταιρεία"
+    )
+    
+    # Tenant Isolation Managers
+    objects = CompanyScopedManager()
+    all_objects = models.Manager()
+    
+    transport_order = models.ForeignKey(
+        TransportOrder,
+        on_delete=models.CASCADE,
+        related_name='cost_breakdown',
+        verbose_name="Εντολή Μεταφοράς"
+    )
+    
+    period_start = models.DateField(verbose_name="Έναρξη Περιόδου")
+    period_end = models.DateField(verbose_name="Λήξη Περιόδου")
+    
+    # Cost Allocations
+    vehicle_alloc = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Κατανομή Οχήματος (€)"
+    )
+    
+    overhead_alloc = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Κατανομή Γενικών Εξόδων (€)"
+    )
+    
+    direct_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Άμεσο Κόστος (€)"
+    )
+    
+    total_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Συνολικό Κόστος (€)"
+    )
+    
+    # Revenue & Profitability
+    revenue = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Έσοδα (€)"
+    )
+    
+    profit = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Κέρδος (€)"
+    )
+    
+    margin = models.DecimalField(
+        max_digits=7,
+        decimal_places=4,
+        default=Decimal('0.0000'),
+        verbose_name="Περιθώριο (%)"
+    )
+    
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='OK',
+        verbose_name="Κατάσταση"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Ανάλυση Κόστους Εντολής"
+        verbose_name_plural = "Αναλύσεις Κόστους Εντολών"
+        ordering = ['-period_start', '-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['company', 'transport_order', 'period_start', 'period_end'],
+                name='unique_order_cost_breakdown'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['company', '-period_start']),
+            models.Index(fields=['transport_order']),
+        ]
+    
+    def __str__(self):
+        return f"{self.transport_order} - Κόστος: €{self.total_cost}, Κέρδος: €{self.profit}"
