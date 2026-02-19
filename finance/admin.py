@@ -5,7 +5,7 @@ from django.contrib import admin
 from unfold.admin import ModelAdmin
 from django.utils.html import format_html
 from .models import ExpenseFamily, ExpenseCategory, CostCenter, CompanyExpense, TransportOrder, CostItem, CostPosting
-from .services import CostCalculator
+from .legacy_services import CostCalculator
 
 # Import CompanyRestrictedAdmin from core
 from core.admin import CompanyRestrictedAdmin
