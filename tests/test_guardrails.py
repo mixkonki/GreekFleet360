@@ -70,12 +70,20 @@ class TenantGuardrailsTestCase(TestCase):
                     with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
                         
-                        # Look for all_objects usage
-                        if 'all_objects' in content:
+                        # Look for ACTUAL all_objects usage (not just mentions in comments/strings)
+                        # Pattern: .all_objects. (dot before and after)
+                        usage_pattern = re.compile(r'\.all_objects\.')
+                        
+                        if usage_pattern.search(content):
                             # Find line numbers
                             lines = content.split('\n')
                             for line_num, line in enumerate(lines, 1):
-                                if 'all_objects' in line and not line.strip().startswith('#'):
+                                # Skip comment lines
+                                if line.strip().startswith('#'):
+                                    continue
+                                
+                                # Check for actual usage pattern
+                                if usage_pattern.search(line):
                                     violations.append({
                                         'file': relative_path,
                                         'line': line_num,

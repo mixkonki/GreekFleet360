@@ -4,7 +4,10 @@ Django Admin Configuration for Finance App
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 from django.utils.html import format_html
-from .models import ExpenseFamily, ExpenseCategory, CostCenter, CompanyExpense, TransportOrder, CostItem, CostPosting
+from .models import (
+    ExpenseFamily, ExpenseCategory, CostCenter, CompanyExpense, 
+    TransportOrder, CostItem, CostPosting, CostRateSnapshot, OrderCostBreakdown
+)
 from .legacy_services import CostCalculator
 
 # Import CompanyRestrictedAdmin from core
@@ -84,6 +87,102 @@ class CostCenterAdmin(CompanyRestrictedAdmin):
         if not obj.pk and hasattr(request, 'company'):
             obj.company = request.company
         super().save_model(request, obj, form, change)
+
+
+@admin.register(CostRateSnapshot)
+class CostRateSnapshotAdmin(CompanyRestrictedAdmin):
+    list_display = ['cost_center', 'basis_unit', 'rate', 'total_cost', 'total_units', 'period_start', 'period_end', 'status', 'company']
+    list_filter = ['company', 'cost_center', 'basis_unit', 'status', 'period_start']
+    search_fields = ['cost_center__name']
+    date_hierarchy = 'period_start'
+    ordering = ['-period_start', 'cost_center', 'basis_unit']
+    
+    fieldsets = (
+        ('Περίοδος', {
+            'fields': ('company', 'period_start', 'period_end')
+        }),
+        ('Κέντρο Κόστους', {
+            'fields': ('cost_center', 'basis_unit')
+        }),
+        ('Υπολογισμοί', {
+            'fields': ('total_cost', 'total_units', 'rate', 'status')
+        }),
+    )
+    
+    readonly_fields = ['created_at']
+    
+    def get_queryset(self, request):
+        """Override to use all_objects for superusers"""
+        if request.user.is_superuser:
+            return self.model.all_objects.all()
+        return self.model.objects.all()
+    
+    def has_add_permission(self, request):
+        """Snapshots are created by management command, not manually"""
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        """Snapshots are read-only"""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Allow deletion for cleanup"""
+        if request.user.is_superuser:
+            return True
+        if obj and hasattr(request, 'company') and obj.company != request.company:
+            return False
+        return super().has_delete_permission(request, obj)
+
+
+@admin.register(OrderCostBreakdown)
+class OrderCostBreakdownAdmin(CompanyRestrictedAdmin):
+    list_display = [
+        'transport_order', 'total_cost', 'revenue', 'profit', 'margin',
+        'period_start', 'period_end', 'status', 'company'
+    ]
+    list_filter = ['company', 'status', 'period_start', 'transport_order__assigned_vehicle']
+    search_fields = ['transport_order__customer_name', 'transport_order__origin', 'transport_order__destination']
+    date_hierarchy = 'period_start'
+    ordering = ['-period_start', '-profit']
+    
+    fieldsets = (
+        ('Περίοδος', {
+            'fields': ('company', 'period_start', 'period_end')
+        }),
+        ('Εντολή Μεταφοράς', {
+            'fields': ('transport_order',)
+        }),
+        ('Κατανομή Κόστους', {
+            'fields': ('vehicle_alloc', 'overhead_alloc', 'direct_cost', 'total_cost')
+        }),
+        ('Κερδοφορία', {
+            'fields': ('revenue', 'profit', 'margin', 'status')
+        }),
+    )
+    
+    readonly_fields = ['created_at']
+    
+    def get_queryset(self, request):
+        """Override to use all_objects for superusers"""
+        if request.user.is_superuser:
+            return self.model.all_objects.all()
+        return self.model.objects.all()
+    
+    def has_add_permission(self, request):
+        """Breakdowns are created by management command, not manually"""
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        """Breakdowns are read-only"""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Allow deletion for cleanup"""
+        if request.user.is_superuser:
+            return True
+        if obj and hasattr(request, 'company') and obj.company != request.company:
+            return False
+        return super().has_delete_permission(request, obj)
 
 
 @admin.register(CompanyExpense)
