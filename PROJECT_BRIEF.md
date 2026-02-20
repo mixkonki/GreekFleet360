@@ -1,3 +1,10 @@
+> ⚠️ **ARCHIVED:** This document reflects the original project vision (February 2026).
+> For current architecture, implementation state, and roadmap see:
+> - [`docs/GREEKFLEET360_SINGLE_SOURCE.md`](docs/GREEKFLEET360_SINGLE_SOURCE.md) — Entry point
+> - [`docs/MASTER_SYSTEM_ARCHITECTURE.md`](docs/MASTER_SYSTEM_ARCHITECTURE.md) — Full reference
+
+---
+
 # Project Name: GreekFleet 360 (Holistic FMS & TMS)
 # Role: Senior Django Architect & Business Intelligence Lead
 
