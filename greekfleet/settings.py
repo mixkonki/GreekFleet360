@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Third-party apps
+    'rest_framework',
     'polymorphic',
     'django_extensions',
     # Local apps
@@ -316,6 +317,21 @@ MANAGERS = ADMINS
 # SECURE_CONTENT_TYPE_NOSNIFF = True  # Prevent MIME-sniffing
 # SECURE_BROWSER_XSS_FILTER = True  # Enable browser XSS filter
 # X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking
+
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAdminUser',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'COERCE_DECIMAL_TO_STRING': False,  # Return Decimals as numbers in JSON
+}
 
 # Logging Configuration
 LOGGING = {
