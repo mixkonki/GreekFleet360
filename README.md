@@ -1,25 +1,30 @@
 # GreekFleet 360 - Holistic Fleet & Mobility Management System
 
+> 📚 **Documentation:** Start here → [`docs/GREEKFLEET360_SINGLE_SOURCE.md`](docs/GREEKFLEET360_SINGLE_SOURCE.md)  
+> Full architecture reference: [`docs/MASTER_SYSTEM_ARCHITECTURE.md`](docs/MASTER_SYSTEM_ARCHITECTURE.md)
+
+---
+
 ## 🚀 Επισκόπηση Έργου
 
 Το **GreekFleet 360** είναι ένα ολοκληρωμένο **SaaS Fleet Management & Transport Management System** σχεδιασμένο ειδικά για την ελληνική αγορά. Παρέχει πλήρη διαχείριση στόλου, οικονομική ανάλυση, και decision support για εταιρείες μεταφορών.
 
 ### Βασικά Χαρακτηριστικά
 - **Multi-Tenant SaaS Architecture**: Πολλαπλές εταιρείες με πλήρη απομόνωση δεδομένων
-- **Polymorphic Vehicle Models**: Φορτηγά, Λεωφορεία, Ταξί, Επιβατικά, Μοτοσυκλέτες
-- **Financial Engine**: True Break-Even & Profitability Analysis
+- **Unified Vehicle Model**: Ενιαίο μοντέλο οχήματος (`operations.Vehicle`) για όλους τους τύπους
+- **Cost Engine v1.0**: True Break-Even & Profitability Analysis ανά κέντρο κόστους
+- **REST API**: `/api/v1/cost-engine/run/` για analytics (DRF, schema v1)
 - **Operations Tracking**: Καύσιμα, Συντηρήσεις, Συμβάντα
 - **Modern Web UI**: HTMX + Tailwind CSS + Leaflet Maps
 - **Authentication**: Πλήρες signup/login system
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Python 3.12, Django 5.0+
+- **Backend**: Python 3.12, Django 5.0+, Django REST Framework 3.16.1
 - **Database**: PostgreSQL (SQLite για development)
-- **ORM**: django-polymorphic για vehicle inheritance
 - **Frontend**: HTMX, Alpine.js, Tailwind CSS
 - **Maps**: Leaflet.js με Nominatim & OSRM APIs
-- **Admin**: Django Admin με Polymorphic support
+- **Admin**: Django Unfold theme
 
 ## 📦 Εγκατάσταση
 
@@ -31,7 +36,8 @@
 
 1. **Clone το repository**
 ```bash
-cd c:\wamp64\www\TransCost
+git clone https://github.com/mixkonki/GreekFleet360.git
+cd GreekFleet360
 ```
 
 2. **Εγκατάσταση dependencies**
@@ -72,26 +78,10 @@ http://localhost:8000/admin/
 - Multi-tenant model για απομόνωση δεδομένων
 - Υποστήριξη διαφορετικών τύπων επιχειρήσεων (Μεταφορές, Ταξί, Τουριστικά, κλπ)
 
-#### VehicleAsset (Βασικό Όχημα)
-- Polymorphic parent model
-- Κοινά πεδία για όλα τα οχήματα (πινακίδα, VIN, ασφάλεια, ΚΤΕΟ)
-
-#### Truck (Φορτηγό)
-- Ταχογράφος, ADR, αριθμός αξόνων
-- Σύνδεση με ρυμουλκούμενο
-
-#### Bus (Λεωφορείο)
-- Αριθμός θέσεων, WiFi, WC
-- Ασφάλιση επιβατών
-
-#### PassengerCar (Επιβατικό)
-- Υποστήριξη Ταξί (ταξίμετρο, άδεια)
-- Leasing information
-- BiK tax value
-
-#### Moto (Μοτοσυκλέτα)
-- Κυβικά, top case
-- Μέγιστο φορτίο για delivery
+#### Vehicle (Όχημα) — `operations.Vehicle`
+- Ενιαίο μοντέλο για όλους τους τύπους οχημάτων (φορτηγά, λεωφορεία, ταξί, επιβατικά, μοτοσυκλέτες)
+- Κοινά πεδία: πινακίδα, VIN, ασφάλεια, ΚΤΕΟ, τύπος οχήματος
+- Τύποι: `TRUCK`, `BUS`, `TAXI`, `CAR`, `MOTO`
 
 #### DriverProfile (Προφίλ Οδηγού)
 - Κατηγορίες άδειας (B, C, D, E, A)
@@ -103,7 +93,7 @@ http://localhost:8000/admin/
 
 ### Phase 1: Data Foundation ✅
 - ✅ Multi-tenant Company model
-- ✅ Polymorphic VehicleAsset (Truck, Bus, Taxi, PassengerCar, Moto)
+- ✅ Unified Vehicle model (`operations.Vehicle`)
 - ✅ DriverProfile με άδειες, ΠΕΙ, ιατρικές
 - ✅ Django Admin configuration
 
@@ -113,16 +103,12 @@ http://localhost:8000/admin/
 - ✅ IncidentReport (ατυχήματα, κλήσεις, βλάβες)
 - ✅ Django Signals για automation
 
-### Phase 3: Financial Core & Cost Engine ✅
-- ✅ GlobalOverhead model με hourly rate calculation
+### Phase 3: Financial Core ✅
+- ✅ Hierarchical expense structure (ExpenseFamily → ExpenseCategory → CompanyExpense)
 - ✅ TransportOrder model (revenue tracking)
-- ✅ **CostCalculator Service** (The Brain):
-  - Fixed costs (depreciation, insurance, driver wage)
-  - Overhead allocation
-  - Variable costs (fuel από πραγματικά δεδομένα, tires, maintenance)
-  - True profitability calculation
+- ✅ CostCenter, CostItem, CostPosting models
 
-### Phase 4: Frontend Interface ✅
+### Phase 4: Web Frontend ✅
 - ✅ Modern web UI με sidebar navigation
 - ✅ Dashboard με 4 live KPIs
 - ✅ Vehicle list με HTMX infinite scroll & health bars
@@ -131,7 +117,7 @@ http://localhost:8000/admin/
 
 ### Phase 5: Data Entry & Financial Configuration ✅
 - ✅ Tailwind-styled forms
-- ✅ Financial Settings page (GlobalOverhead configuration)
+- ✅ Financial Settings page
 - ✅ Order creation form
 - ✅ Fuel entry form με auto-calculation (Alpine.js)
 
@@ -147,12 +133,40 @@ http://localhost:8000/admin/
 - ✅ Date formats (DD/MM/YYYY)
 - ✅ Number formatting (1.234,56 €)
 - ✅ Admin site header customization
-- ✅ All verbose names in Greek
+
+### Phase 8: Cost Engine v1.0 ✅
+- ✅ Multi-layer cost calculation service (`finance/services/cost_engine/`)
+- ✅ Cost rates per cost center (KM, HOUR, TRIP, REVENUE basis)
+- ✅ Order profitability analysis
+- ✅ Historical snapshots (`CostRateSnapshot`, `OrderCostBreakdown`)
+- ✅ Batch command: `python manage.py calculate_costs`
+- ✅ Tenant isolation enforced with guardrails
+
+### Phase 9: REST API Layer ✅
+- ✅ DRF API endpoint: `GET /api/v1/cost-engine/run/`
+- ✅ Session authentication, Staff/Superuser permissions
+- ✅ Schema v1.0 responses
+- ✅ 11 comprehensive API tests
+
+## 🌐 API
+
+### Cost Engine API
+
+**Endpoint:** `GET /api/v1/cost-engine/run/`  
+**Auth:** Session (Staff or Superuser only)  
+**Schema:** v1.0 — see [`docs/cost_engine_schema_v1.md`](docs/cost_engine_schema_v1.md)
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/cost-engine/run/?period_start=2026-01-01&period_end=2026-01-31" \
+  -H "Cookie: sessionid=<your_session_id>"
+```
+
+**Parameters:** `period_start`, `period_end` (required) | `company_id`, `only_nonzero`, `include_breakdowns` (optional)
 
 ## 📝 Σημειώσεις Ανάπτυξης
 
 ### Python Version
-Το project χρησιμοποιεί **Python 3.12** για πλήρη συμβατότητα με GeoDjango, GDAL και βιβλιοθήκες υπολογισμών (Pandas/Numpy).
+Το project χρησιμοποιεί **Python 3.12**.
 
 ### Database
 - **Development**: SQLite (default)
@@ -175,76 +189,55 @@ Proprietary - All rights reserved
 ```
 http://localhost:8000/accounts/signup/
 ```
-- Δημιουργήστε λογαριασμό χρήστη
-- Εισάγετε στοιχεία εταιρείας (Επωνυμία, ΑΦΜ)
-- Το σύστημα δημιουργεί αυτόματα Company + UserProfile
-- Auto-login στο Dashboard
 
 ### 2. Ρύθμιση Οικονομικών
 ```
 http://localhost:8000/finance/settings/
 ```
-- Εισάγετε γενικά έξοδα (ενοίκιο, μισθοδοσία, κλπ)
-- Δείτε την υπολογισμένη ωριαία επιβάρυνση
 
 ### 3. Προσθήκη Οχημάτων
 ```
-http://localhost:8000/admin/core/vehicleasset/add/
+http://localhost:8000/admin/operations/vehicle/add/
 ```
-- Επιλέξτε τύπο οχήματος (Truck, Bus, Taxi, Car, Moto)
-- Συμπληρώστε στοιχεία (πινακίδα, VIN, ΚΤΕΟ, ασφάλεια)
 
 ### 4. Καταχώρηση Δεδομένων
 - **Καύσιμα**: http://localhost:8000/fuel/create/
 - **Εντολές**: http://localhost:8000/orders/create/
 - **Συντηρήσεις**: Admin Panel
 
-### 5. Ανάλυση & Αποφάσεις
-- **Dashboard**: Live KPIs (έσοδα, κέρδος, συντήρηση)
-- **Στόλος**: Health bars για κάθε όχημα
-- **Εντολές**: Profitability analysis με maps
+### 5. Cost Engine
+```bash
+python manage.py calculate_costs --period-start 2026-01-01 --period-end 2026-01-31
+```
 
 ## 🔐 Security Features
 
-- ✅ Multi-tenant data isolation
+- ✅ Multi-tenant data isolation (CompanyScopedManager + tenant_context)
 - ✅ Login required για όλες τις σελίδες
 - ✅ Company-based filtering (users see only their data)
 - ✅ CSRF protection
 - ✅ Password validation
-- ✅ Role-based access control (ready)
-
-## 📈 Key Features
-
-### Financial Intelligence
-- **True Break-Even Calculation**: Fixed + Overhead + Variable costs
-- **Real Fuel Consumption**: Από πραγματικά δεδομένα (full-tank method)
-- **Profitability per Trip**: Live calculation με traffic lights
-- **Cost Allocation**: Overhead distribution across fleet
-
-### Operations Automation
-- **Auto-Odometer Update**: Signals update vehicle mileage
-- **Maintenance Alerts**: Based on km & time intervals
-- **Fuel Consumption Tracking**: L/100km από ιστορικό
-
-### Modern UX
-- **HTMX**: Dynamic updates χωρίς page reload
-- **Infinite Scroll**: Vehicle list pagination
-- **Interactive Maps**: Route visualization με Leaflet
-- **Auto-Calculations**: Alpine.js για real-time totals
+- ✅ API: Staff/Superuser only
 
 ## 🗺️ Project Structure
 
 ```
 TransCost/
-├── core/               # Company, VehicleAsset, DriverProfile
-├── operations/         # FuelEntry, ServiceLog, IncidentReport
-├── finance/            # GlobalOverhead, TransportOrder, CostCalculator
+├── core/               # Company, Employee, DriverProfile, tenant infrastructure
+├── operations/         # Vehicle (unified), FuelEntry, ServiceLog, IncidentReport
+├── finance/            # CostEngine, TransportOrder, Expenses, REST API
+│   ├── services/cost_engine/  # calculator, queries, aggregations, snapshots, persist
+│   └── api/v1/        # DRF views + urls
 ├── web/                # Frontend views & templates
 ├── accounts/           # Authentication & UserProfile
+├── tests/              # All tests (56 passing)
+├── docs/               # Architecture documentation
+│   ├── GREEKFLEET360_SINGLE_SOURCE.md  ← Start here
+│   ├── MASTER_SYSTEM_ARCHITECTURE.md
+│   ├── DOCS_INDEX.md
+│   └── cost_engine_schema_v1.md
 ├── greekfleet/         # Django settings
-├── requirements.txt    # Python dependencies
-├── .env.example        # Environment variables template
-└── README.md          # This file
+└── requirements.txt
 ```
 
 ## 🌐 URLs
@@ -253,36 +246,13 @@ TransCost/
 - **Στόλος**: http://localhost:8000/vehicles/
 - **Εντολές**: http://localhost:8000/orders/
 - **Οικονομικά**: http://localhost:8000/finance/settings/
+- **API**: http://localhost:8000/api/v1/cost-engine/run/
 - **Admin**: http://localhost:8000/admin/
 - **Login**: http://localhost:8000/accounts/login/
 - **Signup**: http://localhost:8000/accounts/signup/
 
 ---
 
-**Version**: 2.0.0 (All Phases Complete)  
-**Last Updated**: 2026-02-12  
+**Version**: 3.0.0  
+**Last Updated**: 2026-02-20  
 **Status**: Production Ready ✅
-
-</final_file_content>
-
-IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
-
-<environment_details>
-# Visual Studio Code Visible Files
-README.md
-
-# Visual Studio Code Open Tabs
-greekfleet/settings.py
-core/admin.py
-accounts/admin.py
-README.md
-
-# Actively Running Terminals
-## Original command: `py -3.12 manage.py makemigrations core`
-## Original command: `py -3.12 manage.py runserver`
-
-# Current Time
-2/12/2026, 9:17:48 AM (Europe/Athens, UTC+2:00)
-
-# Current Mode
-ACT MODE
