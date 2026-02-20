@@ -4,21 +4,41 @@
 
 ---
 
+## Version 3.1.0 — JWT Authentication Layer (February 20, 2026)
+
+### Phase 10: JWT Authentication ✅
+- ✅ `djangorestframework-simplejwt` v5.5.1 integrated
+- ✅ `POST /api/v1/auth/token/` — Obtain access + refresh tokens
+- ✅ `POST /api/v1/auth/refresh/` — Refresh access token
+- ✅ `POST /api/v1/auth/logout/` — Blacklist refresh token (secure logout)
+- ✅ Token blacklisting enabled (`rest_framework_simplejwt.token_blacklist`)
+- ✅ Access token lifetime: 15 minutes | Refresh token lifetime: 30 days
+- ✅ `AnalyticsPermission` class — RBAC scaffold for future role-based access
+- ✅ 20 JWT auth tests (token obtain, refresh, logout, protected endpoints)
+- ✅ `docs/auth_jwt.md` — Full JWT authentication documentation
+
+---
+
 ## Version 3.0.0 — Cost Engine API + Documentation System (February 20, 2026)
 
 ### Phase 9: REST API Layer ✅
-- ✅ DRF API endpoint: `GET /api/v1/cost-engine/run/` (Staff/Superuser, session auth)
+- ✅ DRF API endpoint: `GET /api/v1/cost-engine/run/` (Staff/Superuser, JWT + session auth)
 - ✅ Schema v1.0 responses (`meta`, `snapshots`, `breakdowns`, `summary`)
 - ✅ Optional filters: `only_nonzero`, `include_breakdowns`, `company_id`
 - ✅ DEV-only debug endpoint: `GET /finance/debug/cost-engine/`
 - ✅ 11 comprehensive API tests (auth, permissions, validation, isolation)
 - ✅ Demo data seeder: `python manage.py seed_cost_engine_demo`
+- ✅ KPI endpoints: `GET /api/v1/kpis/company/summary/`, `/cost-structure/`, `/trend/`
+- ✅ 35 KPI endpoint tests (auth, aggregation, tenant isolation, grain, basis_unit)
+- ✅ History endpoint: `GET /api/v1/cost-engine/history/`
 
 ### Documentation System ✅
 - ✅ `docs/GREEKFLEET360_SINGLE_SOURCE.md` — Single entry point
 - ✅ `docs/MASTER_SYSTEM_ARCHITECTURE.md` — Full 15-section architecture reference
 - ✅ `docs/DOCS_INDEX.md` — Truth table, doc inventory, migration checklist
 - ✅ `docs/cost_engine_schema_v1.md` — API contract for Cost Engine v1.0
+- ✅ `docs/kpis_v1.md` — KPI API v1 documentation
+- ✅ `docs/auth_jwt.md` — JWT Authentication documentation
 - ✅ `STRATEGIC_ARCHITECTURE_AUDIT.md` — Full architectural audit
 
 ---

@@ -129,7 +129,9 @@ class KPISummaryTest(KPIBaseSetup):
 
     def test_unauthenticated_returns_403(self):
         r = self.client.get(SUMMARY_URL, {'period_start': '2026-01-01', 'period_end': '2026-01-31'})
-        self.assertEqual(r.status_code, 403)
+        # DRF returns 401 when JWTAuthentication is the first authenticator
+        # and no credentials are provided. Both 401 and 403 indicate rejection.
+        self.assertIn(r.status_code, [401, 403])
 
     def test_regular_user_returns_403(self):
         self.client.force_authenticate(user=self.regular_user)
@@ -261,7 +263,9 @@ class KPICostStructureTest(KPIBaseSetup):
 
     def test_unauthenticated_returns_403(self):
         r = self.client.get(STRUCTURE_URL, {'period_start': '2026-01-01', 'period_end': '2026-01-31'})
-        self.assertEqual(r.status_code, 403)
+        # DRF returns 401 when JWTAuthentication is the first authenticator
+        # and no credentials are provided. Both 401 and 403 indicate rejection.
+        self.assertIn(r.status_code, [401, 403])
 
     def test_superuser_returns_200(self):
         self.client.force_authenticate(user=self.superuser)
@@ -354,7 +358,9 @@ class KPITrendTest(KPIBaseSetup):
 
     def test_unauthenticated_returns_403(self):
         r = self.client.get(TREND_URL, {'period_start': '2026-01-01', 'period_end': '2026-02-28'})
-        self.assertEqual(r.status_code, 403)
+        # DRF returns 401 when JWTAuthentication is the first authenticator
+        # and no credentials are provided. Both 401 and 403 indicate rejection.
+        self.assertIn(r.status_code, [401, 403])
 
     def test_superuser_returns_200(self):
         self.client.force_authenticate(user=self.superuser)

@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Third-party apps
     'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'polymorphic',
     'django_extensions',
     # Local apps
@@ -321,6 +323,9 @@ MANAGERS = ADMINS
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        # JWT first (for API clients / mobile / React dashboard)
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # Session second (for HTMX web UI — unchanged)
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -331,6 +336,31 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
     'COERCE_DECIMAL_TO_STRING': False,  # Return Decimals as numbers in JSON
+}
+
+# SimpleJWT Configuration
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    # Token lifetimes
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    # Header
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    # Token type
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    # Claims
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    # Token classes
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    # Blacklist
+    'TOKEN_BLACKLIST_ENABLED': True,
 }
 
 # Logging Configuration

@@ -110,7 +110,9 @@ class TestCostEngineAPI(TestCase):
             '/api/v1/cost-engine/run/',
             {'period_start': '2026-01-01', 'period_end': '2026-01-31'}
         )
-        self.assertEqual(response.status_code, 403)
+        # DRF returns 401 when JWTAuthentication is the first authenticator
+        # and no credentials are provided. Both 401 and 403 indicate rejection.
+        self.assertIn(response.status_code, [401, 403])
     
     def test_non_staff_user_returns_403(self):
         """Test that non-staff users are rejected"""
