@@ -188,6 +188,87 @@ curl -X GET "http://localhost:8000/api/v1/cost-engine/run/?period_start=2026-01-
 
 Uses first company in database with hardcoded period (2026-01-01 to 2026-01-31).
 
+## History Endpoint
+
+### REST API (Persisted Data — Read-Only)
+
+**Endpoint:** `GET /api/v1/cost-engine/history/`
+
+**Authentication:** Required (Session)  
+**Permission:** Staff or Superuser
+
+**Query Parameters:**
+
+| Parameter | Required | Type | Default | Description |
+|-----------|----------|------|---------|-------------|
+| `period_start` | No | string | previous month start | Period start (YYYY-MM-DD) |
+| `period_end` | No | string | previous month end | Period end (YYYY-MM-DD) |
+| `month` | No | string | — | Shortcut: YYYY-MM (overrides period_start/end) |
+| `company_id` | No | integer | user's company | Company ID (superuser only) |
+| `include_breakdowns` | No | boolean | 0 | Include order breakdowns (0 or 1) |
+| `only_nonzero` | No | boolean | 0 | Exclude zero-cost snapshots (0 or 1) |
+| `cost_center_id` | No | integer | — | Filter by CostCenter pk |
+| `basis_unit` | No | string | — | Filter by basis unit (KM\|HOUR\|TRIP\|REVENUE) |
+| `limit` | No | integer | 500 | Max records (hard cap: 2000) |
+
+**Key differences from `/run/`:**
+- Reads **persisted** `CostRateSnapshot` and `OrderCostBreakdown` records only
+- Does **not** invoke the cost engine pipeline
+- `include_breakdowns` defaults to `0` (false)
+- Period defaults to **previous full calendar month** if not provided
+- `month=YYYY-MM` shortcut available
+
+**Example Requests:**
+```bash
+# Default (previous month)
+curl "http://localhost:8000/api/v1/cost-engine/history/?company_id=1" \
+  -H "Cookie: sessionid=<session>"
+
+# Specific month shortcut
+curl "http://localhost:8000/api/v1/cost-engine/history/?month=2026-01&company_id=1" \
+  -H "Cookie: sessionid=<session>"
+
+# With breakdowns, non-zero only
+curl "http://localhost:8000/api/v1/cost-engine/history/?period_start=2026-01-01&period_end=2026-01-31&company_id=1&include_breakdowns=1&only_nonzero=1" \
+  -H "Cookie: sessionid=<session>"
+```
+
+**Response meta fields (history-specific):**
+```json
+{
+  "meta": {
+    "schema": "v1.0",
+    "source": "persisted",
+    "generated_at": "2026-02-20T17:00:00.000000+00:00",
+    "period_start": "2026-01-01",
+    "period_end": "2026-01-31",
+    "filters": {
+      "cost_center_id": null,
+      "basis_unit": null,
+      "include_breakdowns": false,
+      "only_nonzero": false,
+      "limit": 500
+    }
+  }
+}
+```
+
+**Summary fields (history-specific):**
+```json
+{
+  "summary": {
+    "total_cost_sum": "1000.00",
+    "total_units_sum": "500.000",
+    "avg_rate": "2.000000",
+    "snapshot_count": 2,
+    "breakdown_count": 0
+  }
+}
+```
+
+**Note:** Decimal values are serialized as **strings** in the history endpoint (for JSON safety), unlike the `/run/` endpoint which returns them as numbers.
+
 ## Version History
 
 - **v1.0** (2026-02-19): Initial schema with meta, snapshots, breakdowns, summary
+- **v1.1** (2026-02-20): Added `/history/` endpoint (persisted read-only analytics)
