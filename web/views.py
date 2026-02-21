@@ -121,7 +121,7 @@ def vehicle_list(request):
     # Apply search filter
     if search_query:
         vehicles_qs = vehicles_qs.filter(
-            Q(plate__icontains=search_query) |
+            Q(license_plate__icontains=search_query) |
             Q(make__icontains=search_query) |
             Q(model__icontains=search_query) |
             Q(vin__icontains=search_query)
@@ -883,7 +883,7 @@ def settings_hub(request):
     from finance.models import ExpenseFamily
     
     try:
-        company = request.user.userprofile.company
+        company = request.user.profile.company
     except:
         company = Company.objects.first()
     
@@ -925,7 +925,7 @@ def company_edit(request):
     from .forms import CompanyForm
     
     try:
-        company = request.user.userprofile.company
+        company = request.user.profile.company
     except:
         company = Company.objects.first()
     
@@ -954,7 +954,7 @@ def user_create(request):
     from django.contrib import messages
     
     try:
-        company = request.user.userprofile.company
+        company = request.user.profile.company
     except:
         company = Company.objects.first()
     
@@ -995,7 +995,7 @@ def user_delete(request, user_id):
     from django.contrib import messages
     
     try:
-        company = request.user.userprofile.company
+        company = request.user.profile.company
     except:
         company = Company.objects.first()
     
@@ -1027,7 +1027,7 @@ def category_create(request):
     from django.contrib import messages
     
     try:
-        company = request.user.userprofile.company
+        company = request.user.profile.company
     except:
         company = Company.objects.first()
     
@@ -1056,7 +1056,7 @@ def category_delete(request, category_id):
     from django.contrib import messages
     
     try:
-        company = request.user.userprofile.company
+        company = request.user.profile.company
     except:
         company = Company.objects.first()
     
