@@ -34,7 +34,7 @@ class CompanyRestrictedAdmin(ModelAdmin):
         
         # Regular users only see their company's data
         try:
-            user_company = request.user.userprofile.company
+            user_company = request.user.profile.company
             if user_company:
                 return qs.filter(company=user_company)
         except:
@@ -51,7 +51,7 @@ class CompanyRestrictedAdmin(ModelAdmin):
             # Only set company for new objects (not editing)
             try:
                 if not obj.company:
-                    obj.company = request.user.userprofile.company
+                    obj.company = request.user.profile.company
             except:
                 pass
         
@@ -170,10 +170,10 @@ class CustomUserAdmin(BaseUserAdmin):
         
         # Staff users only see users from their company
         try:
-            user_company = request.user.userprofile.company
+            user_company = request.user.profile.company
             if user_company:
                 # Filter users who have a profile with the same company
-                return qs.filter(userprofile__company=user_company)
+                return qs.filter(profile__company=user_company)
         except:
             pass
         
@@ -183,7 +183,7 @@ class CustomUserAdmin(BaseUserAdmin):
     def get_company(self, obj):
         """Display user's company"""
         try:
-            return obj.userprofile.company.name if obj.userprofile.company else '-'
+            return obj.profile.company.name if obj.profile.company else '-'
         except:
             return '-'
     get_company.short_description = 'Company'
