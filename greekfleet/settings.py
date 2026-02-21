@@ -287,17 +287,16 @@ UNFOLD = {
     },
 }
 
-# Email Configuration
+# Email Configuration (SMTP for password reset, notifications)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.example.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-# Robust boolean parsing for email security settings
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ['true', '1', 't']
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() in ['true', '1', 't']
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@example.com')
-SERVER_EMAIL = os.getenv('SERVER_EMAIL', EMAIL_HOST_USER or 'server@example.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@greekfleet360.gr')
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', EMAIL_HOST_USER or 'server@greekfleet360.gr')
 
 # Admin Notifications
 ADMINS = [('Administrator', os.getenv('ADMIN_EMAIL', 'admin@example.com'))]

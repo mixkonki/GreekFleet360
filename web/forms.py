@@ -282,6 +282,29 @@ class CompanyForm(TailwindFormMixin, forms.ModelForm):
             'phone': 'Τηλέφωνο',
             'email': 'Email',
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make tax_id readonly if already set
+        if self.instance and self.instance.pk and self.instance.tax_id:
+            self.fields['tax_id'].widget.attrs['readonly'] = True
+            self.fields['tax_id'].widget.attrs['class'] += ' bg-gray-100 cursor-not-allowed'
+            self.fields['tax_id'].help_text = 'Κλειδωμένο μετά την αποθήκευση.'
+
+    def clean_tax_id(self):
+        import re
+        value = (self.cleaned_data.get('tax_id') or '').strip()
+        if value and not re.fullmatch(r'\d{9}', value):
+            raise forms.ValidationError('Το ΑΦΜ πρέπει να αποτελείται από 9 ψηφία.')
+        # Immutability: reject changes once tax_id is set
+        if self.instance and self.instance.pk:
+            existing = (self.instance.tax_id or '').strip()
+            if existing and value != existing:
+                raise forms.ValidationError(
+                    'Το ΑΦΜ δεν μπορεί να αλλάξει αφού αποθηκευτεί. '
+                    'Επικοινωνήστε με τον διαχειριστή.'
+                )
+        return value
 
 
 class CompanyUserForm(TailwindFormMixin, forms.ModelForm):

@@ -57,7 +57,7 @@
     <div x-show="activeTab === 'company'" x-cloak class="bg-white rounded-lg shadow-md p-8">
         <h2 class="text-2xl font-semibold text-gray-800 mb-6">Στοιχεία Εταιρείας</h2>
         
-        <form method="post" action="{% url 'web:company_edit' %}" enctype="multipart/form-data">
+        <form method="post" action="{% url 'web:company_edit' %}" enctype="multipart/form-data" onsubmit="return confirm('Να αποθηκευτούν οι αλλαγές εταιρείας;')">
             {% csrf_token %}
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -91,12 +91,12 @@
     <div x-show="activeTab === 'users'" x-cloak class="bg-white rounded-lg shadow-md p-8">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-semibold text-gray-800">Διαχείριση Χρηστών</h2>
-            <button 
-                onclick="alert('User creation form - to be implemented with modal')"
+            <a 
+                href="{% url 'web:user_create' %}"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-semibold flex items-center gap-2">
                 <i class="fas fa-user-plus"></i>
                 Προσθήκη Χρήστη
-            </button>
+            </a>
         </div>
         
         <div class="overflow-x-auto">
@@ -129,6 +129,15 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             {% if member != user %}
+                            <form method="post" action="{% url 'web:user_toggle_active' member.id %}" class="inline">
+                                {% csrf_token %}
+                                <button 
+                                    type="submit"
+                                    class="{% if member.is_active %}text-orange-600 hover:text-orange-900{% else %}text-green-600 hover:text-green-900{% endif %} mr-3"
+                                    title="{% if member.is_active %}Απενεργοποίηση{% else %}Ενεργοποίηση{% endif %}">
+                                    <i class="fas {% if member.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
+                                </button>
+                            </form>
                             <button 
                                 hx-delete="{% url 'web:user_delete' member.id %}"
                                 hx-confirm="Είστε σίγουροι ότι θέλετε να διαγράψετε τον χρήστη {{ member.username }};"

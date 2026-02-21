@@ -880,17 +880,21 @@ def settings_hub(request):
     Settings Hub with 3 tabs: Company, Users, Financial
     """
     from django.contrib.auth.models import User
+    from django.http import HttpResponseForbidden
+    from django.contrib import messages
     from finance.models import ExpenseFamily
-    
+    from accounts.models import UserProfile
+
     try:
         company = request.user.profile.company
-    except:
-        company = Company.objects.first()
-    
-    if not company:
-        from django.contrib import messages
-        messages.error(request, 'Δεν έχετε ανατεθεί σε εταιρεία. Επικοινωνήστε με τον διαχειριστή.')
-        return redirect('web:dashboard')
+    except (AttributeError, UserProfile.DoesNotExist):
+        messages.error(
+            request,
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
+        return HttpResponseForbidden(
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
     
     # Company Form
     company_form = CompanyForm(instance=company)
@@ -923,16 +927,20 @@ def company_edit(request):
     Edit Company Settings (POST handler for settings hub)
     """
     from .forms import CompanyForm
-    
+    from django.http import HttpResponseForbidden
+    from django.contrib import messages
+    from accounts.models import UserProfile
+
     try:
         company = request.user.profile.company
-    except:
-        company = Company.objects.first()
-    
-    if not company:
-        from django.contrib import messages
-        messages.error(request, 'Δεν έχετε ανατεθεί σε εταιρεία. Επικοινωνήστε με τον διαχειριστή.')
-        return redirect('web:dashboard')
+    except (AttributeError, UserProfile.DoesNotExist):
+        messages.error(
+            request,
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
+        return HttpResponseForbidden(
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
     
     if request.method == 'POST':
         form = CompanyForm(request.POST, request.FILES, instance=company)
@@ -948,15 +956,28 @@ def company_edit(request):
 @login_required
 def user_create(request):
     """
-    Create new Company User
+    Create new Company User (ADMIN-only)
     """
     from .forms import CompanyUserForm
     from django.contrib import messages
+    from django.http import HttpResponse, HttpResponseForbidden
     
     try:
         company = request.user.profile.company
-    except:
-        company = Company.objects.first()
+        current_user_role = request.user.profile.role
+    except (AttributeError, UserProfile.DoesNotExist):
+        messages.error(
+            request,
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
+        return HttpResponseForbidden(
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
+    
+    # ADMIN-only check
+    if current_user_role != 'ADMIN':
+        messages.error(request, 'Δεν έχετε δικαίωμα διαχείρισης χρηστών.')
+        return HttpResponse('Forbidden', status=403)
     
     if request.method == 'POST':
         form = CompanyUserForm(request.POST)
@@ -980,24 +1001,42 @@ def user_create(request):
             
             messages.success(request, f'Ο χρήστης {user.username} δημιουργήθηκε επιτυχώς!')
             return redirect('web:settings_hub')
-        else:
-            messages.error(request, 'Σφάλμα στη φόρμα. Ελέγξτε τα πεδία.')
+    else:
+        # GET request - render form
+        form = CompanyUserForm()
     
-    return redirect('web:settings_hub')
+    context = {
+        'form': form,
+        'company': company,
+    }
+    
+    return render(request, 'web/user_create.html', context)
 
 
 @login_required
 def user_delete(request, user_id):
     """
-    Delete Company User (with security check)
+    Delete Company User (ADMIN-only with security check)
     """
-    from django.http import HttpResponse
+    from django.http import HttpResponse, HttpResponseForbidden
     from django.contrib import messages
     
     try:
         company = request.user.profile.company
-    except:
-        company = Company.objects.first()
+        current_user_role = request.user.profile.role
+    except (AttributeError, UserProfile.DoesNotExist):
+        messages.error(
+            request,
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
+        return HttpResponseForbidden(
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
+    
+    # ADMIN-only check
+    if current_user_role != 'ADMIN':
+        messages.error(request, 'Δεν έχετε δικαίωμα διαχείρισης χρηστών.')
+        return HttpResponse('Forbidden', status=403)
     
     try:
         user = User.objects.get(id=user_id)
@@ -1014,6 +1053,58 @@ def user_delete(request, user_id):
         
         user.delete()
         return HttpResponse('', status=200)
+    except User.DoesNotExist:
+        return HttpResponse('Not found', status=404)
+
+
+@login_required
+def user_toggle_active(request, user_id):
+    """
+    Toggle User.is_active (ADMIN-only with security check)
+    """
+    from django.http import HttpResponse, HttpResponseForbidden
+    from django.contrib import messages
+    
+    try:
+        company = request.user.profile.company
+        current_user_role = request.user.profile.role
+    except (AttributeError, UserProfile.DoesNotExist):
+        messages.error(
+            request,
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
+        return HttpResponseForbidden(
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
+    
+    # ADMIN-only check
+    if current_user_role != 'ADMIN':
+        messages.error(request, 'Δεν έχετε δικαίωμα διαχείρισης χρηστών.')
+        return HttpResponse('Forbidden', status=403)
+    
+    try:
+        user = User.objects.get(id=user_id)
+        
+        # Security Check: Ensure user belongs to same company
+        if user.profile.company != company:
+            messages.error(request, 'Δεν έχετε δικαίωμα διαχείρισης αυτού του χρήστη.')
+            return HttpResponse('Unauthorized', status=403)
+        
+        # Prevent self-toggle
+        if user == request.user:
+            messages.error(request, 'Δεν μπορείτε να απενεργοποιήσετε τον εαυτό σας.')
+            return HttpResponse('Cannot toggle self', status=400)
+        
+        # Toggle is_active
+        user.is_active = not user.is_active
+        user.save(update_fields=['is_active'])
+        
+        if user.is_active:
+            messages.success(request, f'Ο χρήστης {user.username} ενεργοποιήθηκε.')
+        else:
+            messages.success(request, f'Ο χρήστης {user.username} απενεργοποιήθηκε.')
+        
+        return redirect('web:settings_hub')
     except User.DoesNotExist:
         return HttpResponse('Not found', status=404)
 
