@@ -143,7 +143,7 @@ class UserManagementAdminOnlyTestCase(TestCase):
         )
         self.client.login(username='orphan', password='testpass123')
         
-        response = self.client.delete(f'/settings/users/{self.target_user.id}/delete/')
+        response = self.client.post(f'/settings/users/{self.target_user.id}/delete/')
         
         self.assertEqual(response.status_code, 403)
         # Verify user was NOT deleted
@@ -191,17 +191,17 @@ class UserManagementAdminOnlyTestCase(TestCase):
         """Non-admin user should get 403 when trying to delete user"""
         self.client.login(username='manager_a', password='testpass123')
         
-        response = self.client.delete(f'/settings/users/{self.target_user.id}/delete/')
+        response = self.client.post(f'/settings/users/{self.target_user.id}/delete/')
         
         self.assertEqual(response.status_code, 403)
         # Verify user was NOT deleted
         self.assertTrue(User.objects.filter(id=self.target_user.id).exists())
     
     def test_admin_can_delete_user(self):
-        """Admin user should be able to delete user"""
+        """Admin user should be able to delete user via POST"""
         self.client.login(username='admin_a', password='testpass123')
         
-        response = self.client.delete(f'/settings/users/{self.target_user.id}/delete/')
+        response = self.client.post(f'/settings/users/{self.target_user.id}/delete/')
         
         self.assertEqual(response.status_code, 200)
         # Verify user was deleted
@@ -211,7 +211,7 @@ class UserManagementAdminOnlyTestCase(TestCase):
         """Admin should get 403 when trying to delete user from another company"""
         self.client.login(username='admin_a', password='testpass123')
         
-        response = self.client.delete(f'/settings/users/{self.user_b.id}/delete/')
+        response = self.client.post(f'/settings/users/{self.user_b.id}/delete/')
         
         self.assertEqual(response.status_code, 403)
         # Verify user was NOT deleted
@@ -221,7 +221,7 @@ class UserManagementAdminOnlyTestCase(TestCase):
         """Admin should get 400 when trying to delete themselves"""
         self.client.login(username='admin_a', password='testpass123')
         
-        response = self.client.delete(f'/settings/users/{self.admin_user.id}/delete/')
+        response = self.client.post(f'/settings/users/{self.admin_user.id}/delete/')
         
         self.assertEqual(response.status_code, 400)
         # Verify user was NOT deleted
@@ -301,3 +301,118 @@ class UserManagementAdminOnlyTestCase(TestCase):
         # Verify user status unchanged
         self.admin_user.refresh_from_db()
         self.assertTrue(self.admin_user.is_active)
+    
+    # ========== USER EDIT TESTS ==========
+    
+    def test_admin_can_get_edit_page(self):
+        """Admin should be able to access edit user page for same-company user"""
+        self.client.login(username='admin_a', password='testpass123')
+        
+        response = self.client.get(f'/settings/users/{self.target_user.id}/edit/')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Επεξεργασία Χρήστη')
+        self.assertContains(response, self.target_user.username)
+    
+    def test_admin_can_update_user_email_and_role(self):
+        """Admin should be able to POST update email + role + names (persists)"""
+        self.client.login(username='admin_a', password='testpass123')
+        
+        response = self.client.post(f'/settings/users/{self.target_user.id}/edit/', {
+            'first_name': 'Updated',
+            'last_name': 'Name',
+            'email': 'updated@companya.gr',
+            'role': 'MANAGER'
+        })
+        
+        # Should redirect to settings hub
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify changes persisted
+        self.target_user.refresh_from_db()
+        self.assertEqual(self.target_user.first_name, 'Updated')
+        self.assertEqual(self.target_user.last_name, 'Name')
+        self.assertEqual(self.target_user.email, 'updated@companya.gr')
+        self.assertEqual(self.target_user.profile.role, 'MANAGER')
+    
+    def test_admin_cannot_edit_cross_tenant_user(self):
+        """Admin should get 403 when trying to edit user from another company"""
+        self.client.login(username='admin_a', password='testpass123')
+        
+        response = self.client.get(f'/settings/users/{self.user_b.id}/edit/')
+        
+        self.assertEqual(response.status_code, 403)
+    
+    def test_non_admin_cannot_get_edit_page(self):
+        """Non-admin should get 403 when trying to access edit page"""
+        self.client.login(username='manager_a', password='testpass123')
+        
+        response = self.client.get(f'/settings/users/{self.target_user.id}/edit/')
+        
+        self.assertEqual(response.status_code, 403)
+    
+    def test_non_admin_cannot_post_edit(self):
+        """Non-admin should get 403 when trying to POST edit"""
+        self.client.login(username='manager_a', password='testpass123')
+        
+        response = self.client.post(f'/settings/users/{self.target_user.id}/edit/', {
+            'first_name': 'Hacked',
+            'last_name': 'User',
+            'email': 'hacked@companya.gr',
+            'role': 'ADMIN'
+        })
+        
+        self.assertEqual(response.status_code, 403)
+        # Verify no changes
+        self.target_user.refresh_from_db()
+        self.assertNotEqual(self.target_user.first_name, 'Hacked')
+    
+    def test_orphan_user_cannot_get_edit_page(self):
+        """Orphan user should get 403 when trying to access edit page"""
+        orphan_user = User.objects.create_user(
+            username='orphan',
+            password='testpass123',
+            email='orphan@example.com'
+        )
+        self.client.login(username='orphan', password='testpass123')
+        
+        response = self.client.get(f'/settings/users/{self.target_user.id}/edit/')
+        
+        self.assertEqual(response.status_code, 403)
+    
+    def test_orphan_user_cannot_post_edit(self):
+        """Orphan user should get 403 when trying to POST edit"""
+        orphan_user = User.objects.create_user(
+            username='orphan',
+            password='testpass123',
+            email='orphan@example.com'
+        )
+        self.client.login(username='orphan', password='testpass123')
+        
+        response = self.client.post(f'/settings/users/{self.target_user.id}/edit/', {
+            'first_name': 'Hacked',
+            'last_name': 'User',
+            'email': 'hacked@companya.gr',
+            'role': 'ADMIN'
+        })
+        
+        self.assertEqual(response.status_code, 403)
+    
+    def test_email_required_validation(self):
+        """POST with empty email should return form error and not save"""
+        self.client.login(username='admin_a', password='testpass123')
+        
+        response = self.client.post(f'/settings/users/{self.target_user.id}/edit/', {
+            'first_name': 'Test',
+            'last_name': 'User',
+            'email': '',  # Empty email
+            'role': 'VIEWER'
+        })
+        
+        # Should stay on same page with error
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Επεξεργασία Χρήστη')
+        
+        # Verify email was NOT changed
+        self.target_user.refresh_from_db()
+        self.assertEqual(self.target_user.email, 'target@companya.gr')

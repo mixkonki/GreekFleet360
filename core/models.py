@@ -75,6 +75,31 @@ class Company(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    # ========== SUBSCRIPTION MANAGEMENT ==========
+    SUBSCRIPTION_STATUS_CHOICES = [
+        ('TRIAL', 'Δοκιμαστική Περίοδος'),
+        ('ACTIVE', 'Ενεργή'),
+        ('EXPIRED', 'Ληγμένη'),
+    ]
+    subscription_status = models.CharField(
+        max_length=20,
+        choices=SUBSCRIPTION_STATUS_CHOICES,
+        default='ACTIVE',
+        verbose_name="Κατάσταση Συνδρομής"
+    )
+    subscription_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Λήξη Συνδρομής",
+        help_text="Αν κενό, δεν υπάρχει όριο λήξης"
+    )
+    vehicle_limit = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Όριο Οχημάτων",
+        help_text="Μέγιστος αριθμός οχημάτων (null = απεριόριστο)"
+    )
+    
     class Meta:
         verbose_name = "Εταιρεία"
         verbose_name_plural = "Εταιρείες"

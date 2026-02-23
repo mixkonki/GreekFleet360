@@ -129,7 +129,13 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             {% if member != user %}
-                            <form method="post" action="{% url 'web:user_toggle_active' member.id %}" class="inline">
+                            <a 
+                                href="{% url 'web:user_edit' member.id %}"
+                                class="text-blue-600 hover:text-blue-900 mr-3"
+                                title="Επεξεργασία">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="post" action="{% url 'web:user_toggle_active' member.id %}" class="inline" onsubmit="return confirm('{% if member.is_active %}Να απενεργοποιηθεί ο χρήστης;{% else %}Να ενεργοποιηθεί ο χρήστης;{% endif %}')">
                                 {% csrf_token %}
                                 <button 
                                     type="submit"
@@ -138,14 +144,14 @@
                                     <i class="fas {% if member.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
                                 </button>
                             </form>
-                            <button 
-                                hx-delete="{% url 'web:user_delete' member.id %}"
-                                hx-confirm="Είστε σίγουροι ότι θέλετε να διαγράψετε τον χρήστη {{ member.username }};"
-                                hx-target="closest tr"
-                                hx-swap="outerHTML swap:1s"
-                                class="text-red-600 hover:text-red-900">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <form method="post" action="{% url 'web:user_delete' member.id %}" class="inline" onsubmit="return confirm('Οριστική διαγραφή χρήστη. Συνέχεια;')">
+                                {% csrf_token %}
+                                <button 
+                                    type="submit"
+                                    class="text-red-600 hover:text-red-900">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
                             {% endif %}
                         </td>
                     </tr>

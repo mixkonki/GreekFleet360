@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'finance',
     'web',
     'accounts',
+    'billing',
 ]
 
 MIDDLEWARE = [
@@ -82,6 +83,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'core.middleware.CurrentCompanyMiddleware',  # Tenant isolation
+    'core.subscription_middleware.SubscriptionGateMiddleware',  # Subscription gate
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

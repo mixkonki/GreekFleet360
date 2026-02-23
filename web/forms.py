@@ -356,3 +356,73 @@ class ExpenseCategoryForm(TailwindFormMixin, forms.ModelForm):
             'name': 'Όνομα Κατηγορίας',
             'description': 'Περιγραφή',
         }
+
+
+class CompanyUserEditForm(TailwindFormMixin, forms.ModelForm):
+    """
+    Form for editing existing Company Users (ADMIN-only)
+    Allows editing first_name, last_name, email, and role
+    """
+    role = forms.ChoiceField(
+        choices=UserProfile.ROLE_CHOICES,
+        label='Ρόλος',
+        widget=forms.Select()
+    )
+    
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'placeholder': 'π.χ. Γιώργος'}),
+            'last_name': forms.TextInput(attrs={'placeholder': 'π.χ. Παπαδόπουλος'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'π.χ. user@company.gr'}),
+        }
+        labels = {
+            'first_name': 'Όνομα',
+            'last_name': 'Επώνυμο',
+            'email': 'Email',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        # Extract company and is_self flag
+        self.company = kwargs.pop('company', None)
+        self.is_self = kwargs.pop('is_self', False)
+        super().__init__(*args, **kwargs)
+        
+        # Email is required
+        self.fields['email'].required = True
+        
+        # If editing self, disable role field to prevent self-demotion
+        if self.is_self:
+            self.fields['role'].widget.attrs['disabled'] = True
+            self.fields['role'].help_text = 'Δεν μπορείτε να αλλάξετε τον δικό σας ρόλο'
+        
+        # Set initial role from UserProfile
+        if self.instance and self.instance.pk:
+            try:
+                self.fields['role'].initial = self.instance.profile.role
+            except AttributeError:
+                pass
+    
+    def clean_email(self):
+        """
+        Validate email is unique within tenant (case-insensitive)
+        """
+        email = self.cleaned_data.get('email', '').strip().lower()
+        
+        if not email:
+            raise forms.ValidationError('Το email είναι υποχρεωτικό.')
+        
+        # Check for duplicate email within same company
+        if self.company:
+            existing_user = User.objects.filter(
+                email__iexact=email,
+                profile__company=self.company
+            ).exclude(pk=self.instance.pk if self.instance else None).first()
+            
+            if existing_user:
+                raise forms.ValidationError(
+                    f'Το email "{email}" χρησιμοποιείται ήδη από άλλο χρήστη της εταιρείας.'
+                )
+        
+        return email

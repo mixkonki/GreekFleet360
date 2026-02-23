@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Η Συνδρομή Έληξε - GreekFleet 360</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body class="bg-gradient-to-br from-red-500 to-red-700 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8">
+        <!-- Warning Icon -->
+        <div class="text-center mb-8">
+            <div class="inline-block bg-red-100 rounded-full p-4 mb-4">
+                <i class="fas fa-exclamation-triangle text-4xl text-red-600"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800">Η Συνδρομή Έληξε</h1>
+            <p class="text-gray-600 mt-2">Η πρόσβαση στο σύστημα έχει περιοριστεί</p>
+        </div>
+        
+        <!-- Company Info -->
+        {% if company %}
+        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Στοιχεία Εταιρείας</h2>
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Επωνυμία:</span>
+                    <span class="font-semibold text-gray-900">{{ company.name }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">ΑΦΜ:</span>
+                    <span class="font-semibold text-gray-900">{{ company.tax_id }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Κατάσταση:</span>
+                    <span class="px-2 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded">
+                        {{ company.get_subscription_status_display }}
+                    </span>
+                </div>
+                {% if company.subscription_expires_at %}
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Ημερομηνία Λήξης:</span>
+                    <span class="font-semibold text-gray-900">{{ company.subscription_expires_at|date:"d/m/Y H:i" }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Message -->
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-yellow-400"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        Η συνδρομή της εταιρείας σας έχει λήξει. Επικοινωνήστε για ανανέωση.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Admin Notice -->
+        {% if is_admin %}
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-user-shield text-blue-400"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-blue-700 font-semibold">
+                        Μόνο ο διαχειριστής μπορεί να ολοκληρώσει την ανανέωση.
+                    </p>
+                    <p class="text-sm text-blue-600 mt-2">
+                        Έχετε περιορισμένη πρόσβαση στις ρυθμίσεις για να διαχειριστείτε την ανανέωση.
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Contact Info -->
+        <div class="border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Επικοινωνία</h3>
+            <div class="space-y-2 text-sm text-gray-600">
+                <p><i class="fas fa-envelope mr-2 text-gray-400"></i> Email: <a href="mailto:support@greekfleet360.gr" class="text-blue-600 hover:text-blue-800">support@greekfleet360.gr</a></p>
+                <p><i class="fas fa-phone mr-2 text-gray-400"></i> Τηλέφωνο: +30 210 1234567</p>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="mt-8 flex gap-4">
+            {% if is_admin %}
+            <a href="{% url 'web:settings_hub' %}" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center">
+                <i class="fas fa-cog mr-2"></i>
+                Ρυθμίσεις
+            </a>
+            {% endif %}
+            <a href="{% url 'accounts:logout' %}" class="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors text-center">
+                <i class="fas fa-sign-out-alt mr-2"></i>
+                Αποσύνδεση
+            </a>
+        </div>
+        
+        <!-- Footer -->
+        <div class="mt-8 pt-6 border-t border-gray-200 text-center">
+            <p class="text-xs text-gray-500">
+                © 2026 GreekFleet 360. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

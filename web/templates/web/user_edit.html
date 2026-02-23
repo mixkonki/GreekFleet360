@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Επεξεργασία Χρήστη - GreekFleet 360{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Επεξεργασία Χρήστη</h1>
+        <p class="text-gray-600 mt-2">{{ company.name }}</p>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="mb-6">
+            {% for message in messages %}
+                <div class="{% if message.tags == 'success' %}bg-green-100 border-green-400 text-green-700{% elif message.tags == 'error' %}bg-red-100 border-red-400 text-red-700{% else %}bg-blue-100 border-blue-400 text-blue-700{% endif %} border px-4 py-3 rounded relative mb-4" role="alert">
+                    <span class="block sm:inline">{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Edit Form -->
+    <div class="bg-white rounded-lg shadow-md p-8">
+        <form method="post" onsubmit="return confirm('Να αποθηκευτούν οι αλλαγές χρήστη;')">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-6">
+                    <p class="text-red-700 text-sm">{{ form.non_field_errors.0 }}</p>
+                </div>
+            {% endif %}
+            
+            <!-- Username (Read-only) -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-user mr-2 text-gray-400"></i>
+                    Username
+                </label>
+                <input 
+                    type="text" 
+                    value="{{ target_user.username }}" 
+                    readonly
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed">
+            </div>
+            
+            <!-- First Name -->
+            <div class="mb-6">
+                <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-id-card mr-2 text-gray-400"></i>
+                    {{ form.first_name.label }}
+                </label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Last Name -->
+            <div class="mb-6">
+                <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-id-card mr-2 text-gray-400"></i>
+                    {{ form.last_name.label }}
+                </label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Email (Required) -->
+            <div class="mb-6">
+                <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-envelope mr-2 text-gray-400"></i>
+                    {{ form.email.label }}
+                    <span class="text-red-500">*</span>
+                </label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Role -->
+            <div class="mb-6">
+                <label for="{{ form.role.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-user-tag mr-2 text-gray-400"></i>
+                    {{ form.role.label }}
+                </label>
+                {{ form.role }}
+                {% if form.role.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.role.errors.0 }}</p>
+                {% endif %}
+                {% if form.role.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.role.help_text }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Actions -->
+            <div class="flex gap-4">
+                <button type="submit" class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-semibold flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i>
+                    Αποθήκευση
+                </button>
+                <a href="{% url 'web:settings_hub' %}" class="flex-1 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200 font-semibold flex items-center justify-center gap-2">
+                    <i class="fas fa-times"></i>
+                    Ακύρωση
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

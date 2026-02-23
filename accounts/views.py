@@ -1,15 +1,18 @@
 """
 Authentication Views for GreekFleet 360
-Login, Logout, and SaaS Sign-Up
+Login, Logout, SaaS Sign-Up, and Account Management
 """
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.contrib.auth.models import User
 from django.views import View
 from django import forms
 from core.models import Company
 from .models import UserProfile
+from .forms import SignUpForm, AccountProfileForm
 
 
 class SignUpForm(forms.Form):
@@ -146,3 +149,24 @@ def logout_view(request):
     """
     logout(request)
     return redirect('accounts:login')
+
+
+@login_required
+def account_profile_view(request):
+    """
+    Account Profile View - Edit first_name, last_name
+    Email is displayed read-only
+    """
+    if request.method == 'POST':
+        form = AccountProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Οι αλλαγές αποθηκεύτηκαν επιτυχώς.')
+            return redirect('accounts:me')
+    else:
+        form = AccountProfileForm(instance=request.user)
+    
+    return render(request, 'accounts/me.html', {
+        'form': form,
+        'user': request.user
+    })

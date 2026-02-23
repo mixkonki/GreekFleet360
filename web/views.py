@@ -1014,12 +1014,94 @@ def user_create(request):
 
 
 @login_required
+def user_edit(request, user_id):
+    """
+    Edit Company User (ADMIN-only with security check)
+    Allows editing first_name, last_name, email, and role
+    """
+    from django.http import HttpResponseForbidden
+    from django.contrib import messages
+    from .forms import CompanyUserEditForm
+    
+    try:
+        company = request.user.profile.company
+        current_user_role = request.user.profile.role
+    except (AttributeError, UserProfile.DoesNotExist):
+        messages.error(
+            request,
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
+        return HttpResponseForbidden(
+            'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
+        )
+    
+    # ADMIN-only check
+    if current_user_role != 'ADMIN':
+        messages.error(request, 'Δεν έχετε δικαίωμα διαχείρισης χρηστών.')
+        from django.http import HttpResponse
+        return HttpResponse('Forbidden', status=403)
+    
+    # Get target user
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        from django.http import HttpResponse
+        return HttpResponse('Not found', status=404)
+    
+    # Security Check: Ensure user belongs to same company
+    try:
+        if target_user.profile.company != company:
+            messages.error(request, 'Δεν έχετε δικαίωμα επεξεργασίας αυτού του χρήστη.')
+            from django.http import HttpResponse
+            return HttpResponse('Unauthorized', status=403)
+    except AttributeError:
+        messages.error(request, 'Ο χρήστης δεν έχει συσχετισμένη εταιρεία.')
+        from django.http import HttpResponse
+        return HttpResponse('Bad Request', status=400)
+    
+    # Check if editing self
+    is_self = target_user == request.user
+    
+    if request.method == 'POST':
+        form = CompanyUserEditForm(request.POST, instance=target_user, company=company, is_self=is_self)
+        if form.is_valid():
+            # Save User fields
+            form.save()
+            
+            # Update role (unless editing self)
+            if not is_self:
+                new_role = form.cleaned_data.get('role')
+                target_user.profile.role = new_role
+                target_user.profile.save(update_fields=['role'])
+            
+            messages.success(request, f'Ο χρήστης {target_user.username} ενημερώθηκε επιτυχώς!')
+            return redirect('web:settings_hub')
+    else:
+        form = CompanyUserEditForm(instance=target_user, company=company, is_self=is_self)
+    
+    context = {
+        'form': form,
+        'target_user': target_user,
+        'company': company,
+        'is_self': is_self,
+    }
+    
+    return render(request, 'web/user_edit.html', context)
+
+
+@login_required
 def user_delete(request, user_id):
     """
     Delete Company User (ADMIN-only with security check)
+    Requires POST method with CSRF token
     """
     from django.http import HttpResponse, HttpResponseForbidden
     from django.contrib import messages
+    from django.views.decorators.http import require_POST
+    
+    # Enforce POST method
+    if request.method != 'POST':
+        return HttpResponse('Method not allowed', status=405)
     
     try:
         company = request.user.profile.company
