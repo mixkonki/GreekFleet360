@@ -122,21 +122,22 @@ class FuelEntryAPITests(TestCase):
     
     def test_list_returns_only_current_company_entries(self):
         """Test that list returns only current company's fuel entries"""
-        self.client.force_authenticate(user=self.admin_a)
-        
+        self.client.force_login(self.admin_a)
+
         response = self.client.get('/api/v1/fuel-entries/')
-        
         self.assertEqual(response.status_code, 200)
+
         data = response.json()
-        
-        # Should return only Company A's entry
+
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]['vehicle'], self.vehicle_a.id)
         self.assertEqual(data[0]['id'], self.fuel_entry_a.id)
+
+        self.client.logout()
     
     def test_create_succeeds_with_same_company_vehicle(self):
         """Test that valid create succeeds (same-company vehicle)"""
-        self.client.force_authenticate(user=self.admin_a)
+        self.client.force_login(self.admin_a)
         
         payload = {
             'vehicle': self.vehicle_a.id,
@@ -164,10 +165,12 @@ class FuelEntryAPITests(TestCase):
             created_entry = FuelEntry.objects.get(id=data['id'])
             self.assertEqual(created_entry.company, self.company_a)
             self.assertEqual(created_entry.vehicle, self.vehicle_a)
+        
+        self.client.logout()
     
     def test_create_fails_with_cross_tenant_vehicle(self):
         """Test that Company A cannot create entry for Company B's vehicle"""
-        self.client.force_authenticate(user=self.admin_a)
+        self.client.force_login(self.admin_a)
         
         payload = {
             'vehicle': self.vehicle_b.id,  # Company B's vehicle
@@ -184,10 +187,12 @@ class FuelEntryAPITests(TestCase):
         # Should return validation error (404-style: vehicle not found)
         self.assertEqual(response.status_code, 400)
         self.assertIn('vehicle', response.json())
+        
+        self.client.logout()
     
     def test_company_b_sees_only_own_entries(self):
         """Test that Company B sees only their own fuel entries"""
-        self.client.force_authenticate(user=self.admin_b)
+        self.client.force_login(self.admin_b)
         
         response = self.client.get('/api/v1/fuel-entries/')
         
@@ -198,6 +203,8 @@ class FuelEntryAPITests(TestCase):
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]['vehicle'], self.vehicle_b.id)
         self.assertEqual(data[0]['id'], self.fuel_entry_b.id)
+        
+        self.client.logout()
     
     def test_unauthenticated_request_denied(self):
         """Test that unauthenticated requests are denied"""
@@ -208,7 +215,7 @@ class FuelEntryAPITests(TestCase):
     
     def test_list_ordered_by_date_desc(self):
         """Test that list is ordered by date descending"""
-        self.client.force_authenticate(user=self.admin_a)
+        self.client.force_login(self.admin_a)
         
         # Create another entry with earlier date
         earlier_entry = FuelEntry.objects.create(
@@ -231,10 +238,12 @@ class FuelEntryAPITests(TestCase):
         self.assertEqual(len(data), 2)
         self.assertEqual(data[0]['id'], self.fuel_entry_a.id)  # Newest
         self.assertEqual(data[1]['id'], earlier_entry.id)  # Older
+        
+        self.client.logout()
     
     def test_orphan_user_get_returns_403(self):
         """Test that orphan user (no company) gets 403 on GET with Greek message"""
-        self.client.force_authenticate(user=self.orphan_user)
+        self.client.force_login(self.orphan_user)
         
         response = self.client.get('/api/v1/fuel-entries/')
         
@@ -245,10 +254,12 @@ class FuelEntryAPITests(TestCase):
             data['detail'],
             'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
         )
+        
+        self.client.logout()
     
     def test_orphan_user_post_returns_403(self):
         """Test that orphan user (no company) gets 403 on POST with Greek message"""
-        self.client.force_authenticate(user=self.orphan_user)
+        self.client.force_login(self.orphan_user)
         
         payload = {
             'vehicle': self.vehicle_a.id,
@@ -269,3 +280,5 @@ class FuelEntryAPITests(TestCase):
             data['detail'],
             'Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία. Επικοινωνήστε με τον διαχειριστή.'
         )
+        
+        self.client.logout()
