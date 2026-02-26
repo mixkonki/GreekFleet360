@@ -27,3 +27,7 @@ TEST REQUIREMENTS:
 
 If migration risk exists:
 propose phased migration instead of direct change.
+CLARIFICATIONS
+- Do not assume a CompanyScopedManager or .all_objects pattern exists unless you find it in the repo.
+- Do not introduce new manager patterns; use the existing request.company + tenant_context + tenant-scoped viewsets approach.
+- Never claim a task is completed unless you verified git status and test output in the current branch.

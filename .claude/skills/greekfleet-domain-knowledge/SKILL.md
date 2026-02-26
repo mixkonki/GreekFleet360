@@ -52,3 +52,5 @@ WHEN IMPLEMENTING CHANGES
 - Add tests for: cross-tenant safety, role constraints, inactive users, and credential expiry rules.
 
 If requested work contradicts any invariant, stop and propose a safer alternative.
+LEGACY NOTE
+- DriverProfile is legacy/transitionary. Do not expand its usage. Prefer Employee with driver role, and migrate references away from DriverProfile.

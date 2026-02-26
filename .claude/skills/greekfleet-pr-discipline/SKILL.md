@@ -48,3 +48,7 @@ ROLLBACK NOTES:
   git checkout v0.1-tenant-foundation
 
 If any checklist item is missing, stop and ask for what is needed.
+VERIFICATION RULE
+- Never say "already completed" unless you confirm on the current branch with:
+  - git status (clean or expected staged files)
+  - python manage.py test output (green)
