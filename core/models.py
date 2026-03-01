@@ -8,6 +8,9 @@ from polymorphic.models import PolymorphicModel
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
 
+# Import driver compliance models
+from .driver_compliance_models import DrivingLicenseCategory, AdrCategory, DriverCompliance
+
 
 class Company(models.Model):
     """
@@ -129,8 +132,9 @@ class EmployeePosition(models.Model):
 
 class Employee(models.Model):
     """
-    Employee Model - Minimalist personnel tracking
+    Employee Model - Personnel tracking with driver credentials
     """
+    # Basic Info
     first_name = models.CharField(max_length=100, verbose_name="Όνομα")
     last_name = models.CharField(max_length=100, verbose_name="Επώνυμο")
     position = models.ForeignKey(
@@ -139,14 +143,6 @@ class Employee(models.Model):
         related_name='employees',
         verbose_name="Θέση"
     )
-    assigned_vehicle = models.ForeignKey(
-        'operations.Vehicle',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='assigned_employees',
-        verbose_name="Συνδεδεμένο Όχημα"
-    )
     company = models.ForeignKey(
         Company,
         on_delete=models.CASCADE,
@@ -154,6 +150,56 @@ class Employee(models.Model):
         verbose_name="Εταιρεία"
     )
     is_active = models.BooleanField(default=True, verbose_name="Ενεργός")
+    
+    # Personnel Data
+    photo = models.ImageField(
+        upload_to='employees/photos/',
+        null=True,
+        blank=True,
+        verbose_name="Φωτογραφία"
+    )
+    email = models.EmailField(blank=True, verbose_name="Email")
+    phone = models.CharField(max_length=20, blank=True, verbose_name="Τηλέφωνο")
+    date_of_birth = models.DateField(null=True, blank=True, verbose_name="Ημ/νία Γέννησης")
+    
+    # Driver Credentials (nullable - only for drivers)
+    driver_license_number = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name="Αριθμός Άδειας Οδήγησης"
+    )
+    driver_license_categories = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Κατηγορίες Άδειας",
+        help_text="π.χ. B,C,CE,D,DE"
+    )
+    driver_license_expiry = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Λήξη Άδειας Οδήγησης"
+    )
+    tachograph_card_number = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name="Αριθμός Ψηφιακού Ταχογράφου"
+    )
+    tachograph_card_expiry = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Λήξη Κάρτας Ταχογράφου"
+    )
+    adr_category = models.CharField(
+        max_length=10,
+        blank=True,
+        verbose_name="Κατηγορία ADR",
+        help_text="Π1-Π9 για επικίνδυνα εμπορεύματα"
+    )
+    adr_expiry = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Λήξη ADR"
+    )
     
     # Salary & Cost Data
     monthly_gross_salary = models.DecimalField(
@@ -208,65 +254,58 @@ class Employee(models.Model):
         return total_cost
 
 
-class DriverProfile(models.Model):
+class EmployeeLeaveBalance(models.Model):
     """
-    Driver Profile linked to Django User
-    Handles License Types, Medical Exams, CPC
+    Employee Leave Balance per Year
+    Tracks annual, sick, and other leave
     """
-    user = models.OneToOneField(
-        User,
+    employee = models.ForeignKey(
+        Employee,
         on_delete=models.CASCADE,
-        related_name='driver_profile',
-        verbose_name="Χρήστης"
+        related_name='leave_balances',
+        verbose_name="Υπάλληλος"
     )
-    company = models.ForeignKey(
-        Company,
-        on_delete=models.CASCADE,
-        related_name='drivers',
-        verbose_name="Εταιρεία"
+    year = models.IntegerField(verbose_name="Έτος")
+    
+    # Leave tracking
+    annual_entitled = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=Decimal('20.0'),
+        verbose_name="Δικαίωμα Ετήσιας Άδειας (ημέρες)"
     )
-    
-    # Personal Info
-    phone = models.CharField(max_length=20, verbose_name="Τηλέφωνο")
-    address = models.TextField(blank=True, verbose_name="Διεύθυνση")
-    date_of_birth = models.DateField(verbose_name="Ημ/νία Γέννησης")
-    
-    # License Categories (stored as comma-separated string)
-    license_categories = models.CharField(
-        max_length=50,
-        verbose_name="Κατηγορίες Άδειας (π.χ. B,C,E)",
-        help_text="Διαχωρισμένες με κόμμα (π.χ. B,C,E)"
+    annual_taken = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=Decimal('0.0'),
+        verbose_name="Ληφθείσα Ετήσια Άδεια (ημέρες)"
     )
-    license_number = models.CharField(max_length=20, unique=True, verbose_name="Αριθμός Άδειας")
-    license_issue_date = models.DateField(verbose_name="Ημ/νία Έκδοσης Άδειας")
-    license_expiry_date = models.DateField(verbose_name="Λήξη Άδειας")
-    
-    # CPC (Certificate of Professional Competence - ΠΕΙ)
-    cpc_expiry = models.DateField(null=True, blank=True, verbose_name="Λήξη ΠΕΙ")
-    
-    # Medical Exam
-    medical_card_expiry = models.DateField(null=True, blank=True, verbose_name="Λήξη Ιατρικής Κάρτας")
-    
-    # Point System (Sesame - Σύστημα Βαθμών)
-    license_points = models.PositiveIntegerField(
-        default=12,
-        validators=[MaxValueValidator(12)],
-        verbose_name="Βαθμοί Άδειας (Σύστημα Σησάμι)"
+    sick_taken = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=Decimal('0.0'),
+        verbose_name="Ληφθείσα Αναρρωτική (ημέρες)"
+    )
+    other_taken = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=Decimal('0.0'),
+        verbose_name="Άλλες Άδειες (ημέρες)"
     )
     
-    # Employment
-    hire_date = models.DateField(verbose_name="Ημ/νία Πρόσληψης")
-    is_active = models.BooleanField(default=True, verbose_name="Ενεργός")
-    
-    # Metadata
-    notes = models.TextField(blank=True, verbose_name="Σημειώσεις")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        verbose_name = "Προφίλ Οδηγού"
-        verbose_name_plural = "Προφίλ Οδηγών"
-        ordering = ['user__last_name', 'user__first_name']
+        verbose_name = "Υπόλοιπο Αδειών Υπαλλήλου"
+        verbose_name_plural = "Υπόλοιπα Αδειών Υπαλλήλων"
+        unique_together = [['employee', 'year']]
+        ordering = ['-year', 'employee__last_name']
     
     def __str__(self):
-        return f"{self.user.get_full_name()} - {self.license_number}"
+        return f"{self.employee.full_name} - {self.year}"
+    
+    @property
+    def annual_remaining(self):
+        """Calculate remaining annual leave"""
+        return self.annual_entitled - self.annual_taken

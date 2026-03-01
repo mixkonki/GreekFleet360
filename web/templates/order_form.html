@@ -15,6 +15,18 @@
     <form method="post" class="space-y-6">
         {% csrf_token %}
         
+        <!-- Non-field errors (from form.clean()) -->
+        {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+                <p class="font-semibold"><i class="fas fa-exclamation-circle mr-2"></i>Σφάλματα Φόρμας:</p>
+                <ul class="list-disc list-inside mt-2">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        
         <!-- Customer & Date -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -132,6 +144,20 @@
                 </label>
                 {{ form.status }}
             </div>
+        </div>
+        
+        <!-- ADR Requirement -->
+        <div class="flex items-center space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div class="flex items-center">
+                {{ form.requires_adr }}
+                <label for="{{ form.requires_adr.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 mr-1"></i>
+                    {{ form.requires_adr.label }}
+                </label>
+            </div>
+            <p class="text-xs text-gray-600">
+                Επιλέξτε αν η μεταφορά περιλαμβάνει επικίνδυνα εμπορεύματα (ADR)
+            </p>
         </div>
         
         <!-- Notes -->

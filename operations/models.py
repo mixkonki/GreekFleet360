@@ -5,7 +5,7 @@ Fuel, Service, and Incident Tracking
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
-from core.models import Company, DriverProfile
+from core.models import Company
 from core.mixins import CompanyScopedManager
 
 
@@ -31,12 +31,13 @@ class FuelEntry(models.Model):
         verbose_name="Όχημα"
     )
     driver = models.ForeignKey(
-        DriverProfile,
+        'core.Employee',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='fuel_entries',
-        verbose_name="Οδηγός"
+        related_name='fuel_entries_as_driver',
+        verbose_name="Οδηγός",
+        limit_choices_to={'position__is_driver_role': True, 'is_active': True}
     )
     
     # Transaction Details
@@ -235,12 +236,13 @@ class IncidentReport(models.Model):
         verbose_name="Όχημα"
     )
     driver = models.ForeignKey(
-        DriverProfile,
+        'core.Employee',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='incidents',
-        verbose_name="Οδηγός"
+        related_name='incident_reports_as_driver',
+        verbose_name="Οδηγός",
+        limit_choices_to={'position__is_driver_role': True, 'is_active': True}
     )
     
     # Incident Details

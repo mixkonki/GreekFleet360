@@ -6,7 +6,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 from datetime import timedelta
-from core.models import Company, DriverProfile
+from core.models import Company
 from core.mixins import CompanyScopedManager
 
 
@@ -118,13 +118,14 @@ class CostCenter(models.Model):
         help_text="Σύνδεση με όχημα για αυτόματη κατανομή"
     )
     driver = models.ForeignKey(
-        DriverProfile,
+        'core.Employee',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='cost_center',
+        related_name='cost_centers_as_driver',
         verbose_name="Οδηγός",
-        help_text="Σύνδεση με οδηγό για αυτόματη κατανομή"
+        help_text="Σύνδεση με οδηγό για αυτόματη κατανομή",
+        limit_choices_to={'position__is_driver_role': True, 'is_active': True}
     )
     
     is_active = models.BooleanField(default=True, verbose_name="Ενεργό")
@@ -408,12 +409,20 @@ class TransportOrder(models.Model):
         verbose_name="Όχημα"
     )
     assigned_driver = models.ForeignKey(
-        DriverProfile,
+        'core.Employee',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='transport_orders',
-        verbose_name="Οδηγός"
+        verbose_name="Οδηγός",
+        limit_choices_to={'position__is_driver_role': True, 'is_active': True}
+    )
+    
+    # ADR Requirement Flag
+    requires_adr = models.BooleanField(
+        default=False,
+        verbose_name="Απαιτεί ADR",
+        help_text="Μεταφορά επικίνδυνων εμπορευμάτων"
     )
     
     duration_hours = models.DecimalField(
