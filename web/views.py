@@ -4,6 +4,7 @@ Frontend Interface with HTMX and Leaflet
 """
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.db.models import Sum, Avg, Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -15,7 +16,11 @@ from finance.models import TransportOrder, CompanyExpense, CostCenter, ExpenseCa
 from finance.legacy_services import CostCalculator
 from operations.models import FuelEntry, ServiceLog, Vehicle
 from accounts.models import UserProfile
-from .forms import CompanyExpenseForm, CostCenterForm, TransportOrderForm, FuelEntryForm, VehicleForm, CompanyForm
+from .forms import (
+    CompanyExpenseForm, CostCenterForm, TransportOrderForm, 
+    FuelEntryForm, VehicleForm, CompanyForm, EmployeeForm, DriverComplianceForm
+)
+from core.driver_compliance_models import DriverCompliance
 
 
 @login_required
@@ -776,6 +781,104 @@ def employee_delete(request, employee_id):
     # Return empty response for HTMX to remove the row
     return HttpResponse('', status=200)
 
+
+@login_required
+def driver_compliance_form(request, employee_id):
+    """
+    Return Driver Compliance Form Modal (HTMX GET)
+    """
+    from django.http import HttpResponse
+    from django.core.exceptions import PermissionDenied
+    from .forms import DriverComplianceForm
+    from core.driver_compliance_models import DriverCompliance
+    
+    # Tenant safety: MUST use request.company (set by middleware)
+    company = getattr(request, "company", None)
+    if not company:
+        raise PermissionDenied("Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία.")
+    
+    # Get employee (tenant-scoped)
+    employee = get_object_or_404(Employee, id=employee_id, company=company)
+    
+    # Check if employee is a driver
+    if not employee.position.is_driver_role:
+        raise PermissionDenied("Ο υπάλληλος δεν έχει θέση οδηγού.")
+    
+    # Get or create compliance record
+    try:
+        compliance = employee.driver_compliance
+        form = DriverComplianceForm(instance=compliance)
+        title = f'Συμμόρφωση Οδηγού: {employee.full_name}'
+    except DriverCompliance.DoesNotExist:
+        form = DriverComplianceForm()
+        title = f'Νέα Συμμόρφωση: {employee.full_name}'
+    
+    context = {
+        'form': form,
+        'title': title,
+        'employee': employee,
+    }
+    
+    return render(request, 'partials/driver_compliance_modal.html', context)
+
+
+@login_required
+def driver_compliance_save(request, employee_id):
+    """
+    Save Driver Compliance (HTMX POST)
+    """
+    from django.http import HttpResponse
+    from django.urls import reverse
+    from django.core.exceptions import PermissionDenied
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    company = getattr(request, "company", None)
+    if not company:
+        raise PermissionDenied("Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία.")
+
+    employee = get_object_or_404(Employee, id=employee_id, company=company)
+    if not employee.position.is_driver_role:
+        return HttpResponse("Forbidden", status=403)
+
+    # Get existing compliance or None (don't create yet)
+    try:
+        compliance = employee.driver_compliance
+    except DriverCompliance.DoesNotExist:
+        compliance = None
+
+    # DIAGNOSTIC: Log POST data
+    logger.info(f"[DRIVER_COMPLIANCE_SAVE] Employee: {employee.full_name}")
+    logger.info(f"[DRIVER_COMPLIANCE_SAVE] POST data: {dict(request.POST)}")
+
+    # Bind form to POST data
+    form = DriverComplianceForm(request.POST, instance=compliance)
+
+    if form.is_valid():
+        logger.info(f"[DRIVER_COMPLIANCE_SAVE] Form is valid. Cleaned data: {form.cleaned_data}")
+        obj = form.save(commit=False)
+        obj.employee = employee
+        obj.save()
+        form.save_m2m()
+        logger.info(f"[DRIVER_COMPLIANCE_SAVE] Saved successfully. License expiry: {obj.license_expiry_date}")
+
+        # HTMX redirect
+        if request.headers.get("HX-Request") == "true":
+            resp = HttpResponse(status=204)
+            resp["HX-Redirect"] = reverse("web:finance_settings")
+            return resp
+
+        return redirect("web:finance_settings")
+
+    # If not valid, return modal with errors
+    logger.error(f"[DRIVER_COMPLIANCE_SAVE] Form validation failed. Errors: {form.errors}")
+    context = {
+        "form": form,
+        "employee": employee,
+        "title": "Συμμόρφωση Οδηγού",
+    }
+    return render(request, "partials/driver_compliance_modal.html", context, status=200)
 
 # ============================================================================
 # FLEET MANAGEMENT VIEWS (New Vehicle Model)

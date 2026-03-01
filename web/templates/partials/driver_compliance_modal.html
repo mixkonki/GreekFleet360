@@ -1,0 +1,194 @@
+<!-- Modal Overlay -->
+<div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+     x-data="{ show: true }"
+     x-show="show"
+     @click.self="show = false; document.getElementById('modal-container').innerHTML = ''">
+    
+    <!-- Modal Content -->
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl p-6 m-4 max-h-[90vh] overflow-y-auto" @click.stop>
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">
+                <i class="fas fa-id-card text-blue-600 mr-2"></i>
+                {{ title }}
+            </h2>
+            <button @click="show = false; document.getElementById('modal-container').innerHTML = ''" 
+                    class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Employee Info Banner -->
+        <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+            <p class="text-sm text-gray-700">
+                <i class="fas fa-user mr-2 text-blue-600"></i>
+                <strong>Οδηγός:</strong> {{ employee.full_name }} ({{ employee.position.title }})
+            </p>
+        </div>
+        
+        <!-- Form -->
+        <form method="post" 
+              hx-post="{% url 'web:driver_compliance_save' employee.id %}"
+              hx-target="#modal-container"
+              hx-swap="outerHTML"
+              class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Non-field errors -->
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+                    <p class="font-semibold"><i class="fas fa-exclamation-circle mr-2"></i>Σφάλματα Φόρμας:</p>
+                    <ul class="list-disc list-inside mt-2">
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            
+            <!-- Driving License Section -->
+            <div class="border-b pb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-id-card mr-2 text-green-600"></i>
+                    Άδεια Οδήγησης
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.license_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.license_number.label }}
+                        </label>
+                        {{ form.license_number }}
+                        {% if form.license_number.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.license_number.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.license_expiry_date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.license_expiry_date.label }}
+                        </label>
+                        {{ form.license_expiry_date }}
+                        {% if form.license_expiry_date.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.license_expiry_date.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label for="{{ form.license_categories.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.license_categories.label }}
+                    </label>
+                    {{ form.license_categories }}
+                    {% if form.license_categories.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.license_categories.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- PEI Section -->
+            <div class="border-b pb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-certificate mr-2 text-purple-600"></i>
+                    ΠΕΙ (Πιστοποιητικό Επαγγελματικής Ικανότητας)
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.pei_truck_expiry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.pei_truck_expiry.label }}
+                        </label>
+                        {{ form.pei_truck_expiry }}
+                        {% if form.pei_truck_expiry.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.pei_truck_expiry.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.pei_bus_expiry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.pei_bus_expiry.label }}
+                        </label>
+                        {{ form.pei_bus_expiry }}
+                        {% if form.pei_bus_expiry.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.pei_bus_expiry.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tachograph Section -->
+            <div class="border-b pb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-tachometer-alt mr-2 text-orange-600"></i>
+                    Ψηφιακός Ταχογράφος
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.tachograph_card_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.tachograph_card_number.label }}
+                        </label>
+                        {{ form.tachograph_card_number }}
+                        {% if form.tachograph_card_number.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.tachograph_card_number.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.tachograph_card_expiry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.tachograph_card_expiry.label }}
+                        </label>
+                        {{ form.tachograph_card_expiry }}
+                        {% if form.tachograph_card_expiry.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.tachograph_card_expiry.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ADR Section -->
+            <div class="pb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-exclamation-triangle mr-2 text-yellow-600"></i>
+                    ADR (Επικίνδυνα Εμπορεύματα)
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.adr_category.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                         {{ form.adr_category.label }}
+                        </label>
+                        {{ form.adr_category }}
+                        {% if form.adr_category.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.adr_category.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.adr_expiry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.adr_expiry.label }}
+                        </label>
+                        {{ form.adr_expiry }}
+                        {% if form.adr_expiry.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.adr_expiry.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="flex justify-end space-x-4 pt-4 border-t">
+                <button type="button" 
+                        @click="show = false; document.getElementById('modal-container').innerHTML = ''"
+                        class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                    Ακύρωση
+                </button>
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>
+                    Αποθήκευση
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

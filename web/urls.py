@@ -25,6 +25,8 @@ urlpatterns = [
     path('finance/employee/create/', views.employee_create, name='employee_create'),
     path('finance/employee/<int:employee_id>/edit/', views.employee_edit, name='employee_edit'),
     path('finance/employee/<int:employee_id>/delete/', views.employee_delete, name='employee_delete'),
+    path('finance/employee/<int:employee_id>/compliance/', views.driver_compliance_form, name='driver_compliance_form'),
+    path('finance/employee/<int:employee_id>/compliance/save/', views.driver_compliance_save, name='driver_compliance_save'),
     
     # Fleet Management (New Vehicle Model)
     path('fleet/', views.fleet_list, name='fleet_list'),

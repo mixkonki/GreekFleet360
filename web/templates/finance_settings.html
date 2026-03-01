@@ -393,11 +393,22 @@
                             {% endif %}
                         </td>
                         <td class="px-4 py-4 text-sm whitespace-nowrap">
+                            {% if employee.position.is_driver_role %}
+                            <button 
+                                hx-get="{% url 'web:driver_compliance_form' employee.id %}" 
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML"
+                                class="text-green-600 hover:text-green-900 mr-3"
+                                title="Συμμόρφωση Οδηγού">
+                                <i class="fas fa-id-card"></i>
+                            </button>
+                            {% endif %}
                             <button 
                                 hx-get="{% url 'web:employee_edit' employee.id %}" 
                                 hx-target="#modal-container"
                                 hx-swap="innerHTML"
-                                class="text-blue-600 hover:text-blue-900 mr-3">
+                                class="text-blue-600 hover:text-blue-900 mr-3"
+                                title="Επεξεργασία">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button 
@@ -406,7 +417,8 @@
                                 hx-confirm="Διαγραφή υπαλλήλου;"
                                 hx-target="closest tr"
                                 hx-swap="outerHTML"
-                                class="text-red-600 hover:text-red-900">
+                                class="text-red-600 hover:text-red-900"
+                                title="Διαγραφή">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
