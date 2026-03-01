@@ -485,9 +485,8 @@ def expense_create(request):
             # Log form errors for debugging
             import logging
             logger = logging.getLogger(__name__)
-            logger.error(f"Form validation failed: {form.errors}")
-            print(f"FORM ERRORS: {form.errors}")  # Console output for immediate debugging
-            
+            logger.debug(f"Form validation failed: {form.errors}")
+                        
             # Return to form with errors
             context = {
                 'form': form,
@@ -687,10 +686,8 @@ def employee_create(request):
         import logging
         from django.conf import settings
         logger = logging.getLogger(__name__)
-        logger.error("Employee form invalid: %s", form.errors)
-        if settings.DEBUG:
-            print(f"EMPLOYEE FORM ERRORS: {form.errors}")
-        
+        logger.debug("Employee form invalid: %s", form.errors)
+                        
         # Return form with errors
         context = {
             'form': form,
@@ -750,10 +747,8 @@ def employee_edit(request, employee_id):
         import logging
         from django.conf import settings
         logger = logging.getLogger(__name__)
-        logger.error("Employee edit form invalid: %s", form.errors)
-        if settings.DEBUG:
-            print(f"EMPLOYEE EDIT FORM ERRORS: {form.errors}")
-        
+        logger.debug("Employee edit form invalid: %s", form.errors)
+                    
         # Return form with errors
         context = {
             'form': form,
