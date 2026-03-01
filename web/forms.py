@@ -2,11 +2,13 @@
 Django Forms for GreekFleet 360 Web Interface
 Tailwind CSS styled forms
 """
+import re
 from django import forms
 from django.contrib.auth.models import User
 
 from accounts.models import UserProfile
 from core.models import Employee, Company
+from core.driver_compliance_models import DriverCompliance
 from finance.models import RecurringExpense, TransportOrder, ExpenseCategory, CostCenter
 from operations.models import FuelEntry, ServiceLog, Vehicle
 
@@ -339,10 +341,202 @@ class EmployeeForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Employee
         exclude = ["company"]  # All fields except company
+        widgets = {
+            "date_of_birth": forms.DateInput(attrs={"type": "date"}),
+        }
 
     def __init__(self, *args, **kwargs):
         self.company = kwargs.pop("company", None)
         super().__init__(*args, **kwargs)
+        
+        # Make salary fields optional (they have defaults in model)
+        if "monthly_gross_salary" in self.fields:
+            self.fields["monthly_gross_salary"].required = False
+        if "employer_contributions_rate" in self.fields:
+            self.fields["employer_contributions_rate"].required = False
+        if "available_hours_per_year" in self.fields:
+            self.fields["available_hours_per_year"].required = False
+
+
+class DriverComplianceForm(TailwindFormMixin, forms.ModelForm):
+    """
+    Form for Driver Compliance (Frontend - employee/company scoped server-side)
+    """
+
+    # ADR: single-select UX (χωρίς να αλλάξουμε το model)
+    adr_category = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label="— Χωρίς ADR —",
+        label="Κατηγορία ADR (Single)",
+        widget=forms.Select(),
+    )
+
+    class Meta:
+        model = DriverCompliance
+        fields = [
+            "license_number",
+            "license_expiry_date",
+            "license_categories",
+            "pei_truck_expiry",
+            "pei_bus_expiry",
+            "tachograph_card_number",
+            "tachograph_card_expiry",
+            # κρατάμε το adr_categories στο model (ManyToMany) αλλά ΔΕΝ θα το δείχνουμε στο UI
+            "adr_categories",
+            "adr_expiry",
+        ]
+        widgets = {
+            "license_categories": forms.CheckboxSelectMultiple(),
+            # adr_categories ΔΕΝ θα εμφανίζεται (θα γίνεται set μέσω adr_category)
+        }
+        labels = {
+            "license_number": "Αριθμός Άδειας (Πεδίο 5 / 5β)",
+            "license_expiry_date": "Λήξη Άδειας Οδήγησης",
+            "tachograph_card_number": "Αριθμός Κάρτας Ταχογράφου (Πεδίο 5α)",
+            "tachograph_card_expiry": "Λήξη Κάρτας Ταχογράφου (Πεδίο 4β)",
+            "pei_truck_expiry": "Λήξη ΠΕΙ Φορτηγού",
+            "pei_bus_expiry": "Λήξη ΠΕΙ Λεωφορείου",
+            "adr_expiry": "Λήξη ADR",
+        }
+
+    def __init__(self, *args, **kwargs):
+        # Get instance BEFORE calling super
+        instance = kwargs.get('instance', None)
+        
+        # Call parent to initialize form
+        super().__init__(*args, **kwargs)
+
+        # 1) FORCE date widgets with format attribute (like license_expiry_date in Meta)
+        for f in [
+            "license_expiry_date",
+            "pei_truck_expiry",
+            "pei_bus_expiry",
+            "tachograph_card_expiry",
+            "adr_expiry",
+        ]:
+            if f in self.fields:
+                self.fields[f].widget = forms.DateInput(
+                    attrs={"type": "date"},
+                    format='%Y-%m-%d'
+                )
+
+        # 2) Mην αφήνεις το Tailwind mixin να "σπάει" τα checkbox widgets
+        if "license_categories" in self.fields:
+            self.fields["license_categories"].widget.attrs.pop("class", None)
+
+        # 3) Κρύψε το adr_categories (το model field), θα το χειριζόμαστε μέσω adr_category
+        if "adr_categories" in self.fields:
+            self.fields["adr_categories"].required = False
+            self.fields["adr_categories"].widget = forms.MultipleHiddenInput()
+
+        # 4) Φέρε queryset για adr_category από το ίδιο relation του model
+        try:
+            from core.driver_compliance_models import AdrCategory
+            self.fields["adr_category"].queryset = AdrCategory.objects.all().order_by('display_order')
+        except Exception:
+            self.fields["adr_category"].queryset = None
+
+        # 5) Αν υπάρχει ήδη ADR επιλογή, κάνε prefill το single-select
+        # FIX: Set initial value from existing instance
+        if instance and instance.pk:
+            try:
+                # Get first ADR category if exists
+                first_adr = instance.adr_categories.first()
+                if first_adr:
+                    # Set initial to the pk
+                    self.fields["adr_category"].initial = first_adr.pk
+                    # ALSO set the bound data if this is a GET request (not POST)
+                    if not self.data:
+                        self.initial["adr_category"] = first_adr.pk
+            except Exception:
+                pass
+
+    # -------------------------
+    # HARD VALIDATIONS
+    # -------------------------
+    def clean_license_number(self):
+        v = (self.cleaned_data.get("license_number") or "").strip()
+        if not re.fullmatch(r"\d{9}", v):
+            raise forms.ValidationError("Ο αριθμός άδειας πρέπει να είναι ΑΚΡΙΒΩΣ 9 ψηφία.")
+        return v
+
+    def clean_tachograph_card_number(self):
+        v = (self.cleaned_data.get("tachograph_card_number") or "").strip().replace(" ", "").upper()
+        # Allow empty (optional field)
+        if not v:
+            return ""
+        # 16 αλφαριθμητικοί (14 driver id + 1 replace + 1 renewal)
+        if not re.fullmatch(r"[A-Z0-9]{16}", v):
+            raise forms.ValidationError(
+                "Ο αριθμός κάρτας ταχογράφου (5α) πρέπει να είναι ΑΚΡΙΒΩΣ 16 αλφαριθμητικοί χαρακτήρες."
+            )
+        return v
+
+    def clean(self):
+        cleaned = super().clean()
+
+        adr_expiry = cleaned.get("adr_expiry")
+        adr_category = cleaned.get("adr_category")
+        adr_categories = cleaned.get("adr_categories")  # μπορεί να έρθει από tests
+
+        # Backward compatibility: check both adr_category (UI) and adr_categories (tests/API)
+        has_adr_selection = False
+        if adr_category:
+            has_adr_selection = True
+        elif adr_categories is not None:
+            # όταν έρχεται από POST ως M2M
+            try:
+                has_adr_selection = adr_categories.exists()
+            except Exception:
+                has_adr_selection = bool(adr_categories)
+
+        # ADR rule: selection + expiry consistency
+        if has_adr_selection and not adr_expiry:
+            raise forms.ValidationError(
+                "Αν επιλέξετε ADR, πρέπει να ορίσετε ημερομηνία λήξης ADR."
+            )
+        if adr_expiry and not has_adr_selection:
+            raise forms.ValidationError(
+                "Αν ορίσετε ημερομηνία λήξης ADR, πρέπει να επιλέξετε ADR."
+            )
+
+        return cleaned
+
+
+    def save(self, commit=True):
+        """
+        Σώζει το instance + εφαρμόζει το single-select ADR πάνω στο M2M adr_categories.
+        """
+        instance = super().save(commit=commit)
+
+        # Αν commit=False, ο caller θα κάνει save() και μετά θα καλέσει form.save_m2m().
+        # Εδώ όμως θέλουμε να είμαστε deterministically σωστοί:
+        # - Αν commit=True: κάνουμε m2m set εδώ.
+        # - Αν commit=False: θα γίνει set στο save_m2m override παρακάτω.
+        if commit:
+            self._apply_adr_single_select(instance)
+
+        return instance
+
+    def save_m2m(self):
+        super().save_m2m()
+        self._apply_adr_single_select(self.instance)
+
+    def _apply_adr_single_select(self, instance):
+        adr_category = self.cleaned_data.get("adr_category")
+        adr_categories = self.cleaned_data.get("adr_categories")
+
+        if adr_category:
+            instance.adr_categories.set([adr_category])
+            return
+
+        # Αν δεν υπάρχει adr_category, αλλά το form πήρε adr_categories (tests / legacy)
+        if adr_categories is not None:
+            instance.adr_categories.set(list(adr_categories))
+            return
+
+        instance.adr_categories.clear()
 
 
 class VehicleForm(TailwindFormMixin, forms.ModelForm):
