@@ -805,8 +805,12 @@ def driver_compliance_form(request, employee_id):
         raise PermissionDenied("Ο υπάλληλος δεν έχει θέση οδηγού.")
     
     # Get or create compliance record
+    # CRITICAL: Must prefetch M2M relations for form initial values
     try:
-        compliance = employee.driver_compliance
+        compliance = DriverCompliance.objects.prefetch_related(
+            'license_categories',
+            'adr_categories'
+        ).get(employee=employee)
         form = DriverComplianceForm(instance=compliance)
         title = f'Συμμόρφωση Οδηγού: {employee.full_name}'
     except DriverCompliance.DoesNotExist:
