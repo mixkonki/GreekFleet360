@@ -326,7 +326,7 @@ def finance_settings(request):
     vehicles = Vehicle.objects.filter(company=company).select_related('company')
     
     # Get all employees
-    employees = Employee.objects.filter(company=company).select_related('position', 'assigned_vehicle').order_by('last_name', 'first_name')
+    employees = Employee.objects.filter(company=company).select_related('position').order_by('last_name', 'first_name')
     
     context = {
         'expenses': expenses,
@@ -356,13 +356,22 @@ def order_create(request):
         company = Company.objects.first()  # Fallback for development
     
     if request.method == 'POST':
-        form = TransportOrderForm(request.POST)
+        form = TransportOrderForm(request.POST, company=company)
         if form.is_valid():
-            form.save()
+            order = form.save(commit=False)
+            order.company = company
+            order.save()
             from django.shortcuts import redirect
             return redirect('web:order_list')
     else:
-        form = TransportOrderForm(initial={'company': company, 'date': datetime.now().date()})
+        form = TransportOrderForm(
+            company=company,
+            initial={
+                'date': datetime.now().date(),
+                'tolls_cost': Decimal('0.00'),
+                'ferry_cost': Decimal('0.00')
+            }
+        )
     
     context = {
         'form': form,
@@ -635,29 +644,54 @@ def employee_create(request):
     Return Employee Form Modal for Create (HTMX GET)
     OR Handle Employee Create (HTMX POST)
     """
-    try:
-        company = request.user.profile.company
-    except:
-        company = Company.objects.first()
+    from django.http import HttpResponse
+    from django.urls import reverse
+    from django.core.exceptions import PermissionDenied
+    from .forms import EmployeeForm
     
-    if request.method == 'POST':
-        from .forms import EmployeeForm
-        form = EmployeeForm(request.POST, company=company)
-        if form.is_valid():
-            employee = form.save(commit=False)
-            employee.company = company
-            employee.is_active = True
-            employee.save()
-            return redirect('web:finance_settings')
-        else:
-            context = {
-                'form': form,
-                'title': 'Προσθήκη Υπαλλήλου',
-            }
-            return render(request, 'partials/employee_form_modal.html', context)
-    else:
-        from .forms import EmployeeForm
+    # Tenant safety: MUST use request.company (set by middleware)
+    company = getattr(request, "company", None)
+    if not company:
+        raise PermissionDenied("Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία.")
+    
+    # GET request - render modal form
+    if request.method == 'GET':
+        # Only allow HTMX requests for modal
+        if request.headers.get("HX-Request") != "true":
+            return redirect("web:finance_settings")
+        
         form = EmployeeForm(company=company)
+        context = {
+            'form': form,
+            'title': 'Προσθήκη Υπαλλήλου',
+        }
+        return render(request, 'partials/employee_form_modal.html', context)
+    
+    # POST request - handle form submission
+    form = EmployeeForm(request.POST, request.FILES, company=company)
+    if form.is_valid():
+        employee = form.save(commit=False)
+        employee.company = company
+        employee.is_active = True
+        employee.save()
+        
+        # HTMX-aware response
+        if request.headers.get("HX-Request") == "true":
+            response = HttpResponse(status=204)
+            response["HX-Redirect"] = reverse("web:finance_settings")
+            return response
+        else:
+            return redirect('web:finance_settings')
+    else:
+        # Log form errors for debugging
+        import logging
+        from django.conf import settings
+        logger = logging.getLogger(__name__)
+        logger.error("Employee form invalid: %s", form.errors)
+        if settings.DEBUG:
+            print(f"EMPLOYEE FORM ERRORS: {form.errors}")
+        
+        # Return form with errors
         context = {
             'form': form,
             'title': 'Προσθήκη Υπαλλήλου',
@@ -671,29 +705,56 @@ def employee_edit(request, employee_id):
     Return Employee Form Modal for Edit (HTMX GET)
     OR Handle Employee Update (HTMX POST)
     """
-    try:
-        company = request.user.profile.company
-    except:
-        company = Company.objects.first()
+    from django.http import HttpResponse
+    from django.urls import reverse
+    from django.core.exceptions import PermissionDenied
+    from .forms import EmployeeForm
+    
+    # Tenant safety: MUST use request.company (set by middleware)
+    company = getattr(request, "company", None)
+    if not company:
+        raise PermissionDenied("Ο λογαριασμός σας δεν έχει συσχετισμένη εταιρεία.")
     
     employee = get_object_or_404(Employee, id=employee_id, company=company)
     
-    if request.method == 'POST':
-        from .forms import EmployeeForm
-        form = EmployeeForm(request.POST, instance=employee, company=company)
-        if form.is_valid():
-            form.save()
-            return redirect('web:finance_settings')
-        else:
-            context = {
-                'form': form,
-                'title': 'Επεξεργασία Υπαλλήλου',
-                'employee_id': employee_id,
-            }
-            return render(request, 'partials/employee_form_modal.html', context)
-    else:
-        from .forms import EmployeeForm
+    # GET request - render modal form
+    if request.method == 'GET':
+        # Only allow HTMX requests for modal
+        if request.headers.get("HX-Request") != "true":
+            return redirect("web:finance_settings")
+        
         form = EmployeeForm(instance=employee, company=company)
+        context = {
+            'form': form,
+            'title': 'Επεξεργασία Υπαλλήλου',
+            'employee_id': employee_id,
+        }
+        return render(request, 'partials/employee_form_modal.html', context)
+    
+    # POST request - handle form submission
+    form = EmployeeForm(request.POST, request.FILES, instance=employee, company=company)
+    if form.is_valid():
+        employee = form.save(commit=False)
+        employee.company = company
+        employee.save()
+        
+        # HTMX-aware response
+        if request.headers.get("HX-Request") == "true":
+            response = HttpResponse(status=204)
+            response["HX-Redirect"] = reverse("web:finance_settings")
+            return response
+        else:
+            return redirect('web:finance_settings')
+    else:
+        # Log form errors for debugging
+        import logging
+        from django.conf import settings
+        logger = logging.getLogger(__name__)
+        logger.error("Employee edit form invalid: %s", form.errors)
+        if settings.DEBUG:
+            print(f"EMPLOYEE EDIT FORM ERRORS: {form.errors}")
+        
+        # Return form with errors
         context = {
             'form': form,
             'title': 'Επεξεργασία Υπαλλήλου',
@@ -758,18 +819,12 @@ def fleet_list(request):
     else:
         avg_fixed_cost_per_hour = Decimal('0.00')
     
-    # Get assigned drivers (from Employee model)
+    # Note: Driver assignment now happens through TransportOrder, not Employee
     vehicles_with_drivers = []
     for vehicle in vehicles:
-        # Find employee assigned to this vehicle (reverse lookup)
-        assigned_driver = Employee.objects.filter(
-            company=company,
-            assigned_vehicle__isnull=False
-        ).first()  # Simplified - you may need to add a proper relationship
-        
         vehicles_with_drivers.append({
             'vehicle': vehicle,
-            'driver': assigned_driver,
+            'driver': None,  # Driver assignment removed from Employee model
         })
     
     context = {

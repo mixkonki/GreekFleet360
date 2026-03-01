@@ -10,7 +10,6 @@ from core.models import Company
 class UserProfile(models.Model):
     """
     User Profile - Links User to Company for Multi-Tenancy
-    Separate from DriverProfile (which is for actual drivers)
     """
     user = models.OneToOneField(
         User,

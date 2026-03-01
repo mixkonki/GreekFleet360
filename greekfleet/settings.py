@@ -46,6 +46,14 @@ if not SECRET_KEY:
 # Robust ALLOWED_HOSTS parsing (strips whitespace, filters empty strings)
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
 
+# CSRF Trusted Origins (for local development with HTMX)
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:3012",
+    "http://localhost:3012",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+]
+
 
 # Application definition
 

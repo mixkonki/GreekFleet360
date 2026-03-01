@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from unfold.admin import ModelAdmin
 from unfold.contrib.forms.widgets import WysiwygWidget
-from .models import Company, DriverProfile, EmployeePosition, Employee
+from .models import Company, EmployeePosition, Employee
 
 # Customize Admin Site
 # Note: Unfold handles site customization through settings.py
@@ -90,43 +90,28 @@ class EmployeePositionAdmin(ModelAdmin):
 
 @admin.register(Employee)
 class EmployeeAdmin(CompanyRestrictedAdmin):
-    list_display = ['full_name', 'position', 'assigned_vehicle', 'company', 'is_active']
+    list_display = ['full_name', 'position', 'company', 'is_active']
     list_filter = ['company', 'position', 'is_active']
-    search_fields = ['first_name', 'last_name']
+    search_fields = ['first_name', 'last_name', 'email', 'phone']
     ordering = ['last_name', 'first_name']
     
     fieldsets = (
         ('Βασικές Πληροφορίες', {
-            'fields': ('first_name', 'last_name', 'position', 'company')
+            'fields': ('first_name', 'last_name', 'position', 'company', 'is_active')
+        }),
+        ('Στοιχεία Επικοινωνίας', {
+            'fields': ('email', 'phone', 'date_of_birth', 'photo')
+        }),
+        ('Στοιχεία Οδηγού', {
+            'fields': (
+                'driver_license_number', 'driver_license_categories', 'driver_license_expiry',
+                'tachograph_card_number', 'tachograph_card_expiry',
+                'adr_category', 'adr_expiry'
+            ),
+            'description': 'Συμπληρώνονται μόνο για θέσεις οδηγών'
         }),
         ('Μισθοδοσία', {
             'fields': ('monthly_gross_salary', 'employer_contributions_rate', 'available_hours_per_year')
-        }),
-        ('Ανάθεση', {
-            'fields': ('assigned_vehicle', 'is_active')
-        }),
-    )
-
-
-@admin.register(DriverProfile)
-class DriverProfileAdmin(CompanyRestrictedAdmin):
-    list_display = ['user', 'license_number', 'company', 'license_categories', 'is_active']
-    list_filter = ['is_active', 'company']
-    search_fields = ['user__first_name', 'user__last_name', 'license_number', 'phone']
-    ordering = ['user__last_name', 'user__first_name']
-    
-    fieldsets = (
-        ('Βασικές Πληροφορίες', {
-            'fields': ('user', 'company', 'phone', 'address', 'date_of_birth')
-        }),
-        ('Άδεια Οδήγησης', {
-            'fields': ('license_categories', 'license_number', 'license_issue_date', 'license_expiry_date', 'license_points')
-        }),
-        ('ΠΕΙ & Ιατρική', {
-            'fields': ('cpc_expiry', 'medical_card_expiry')
-        }),
-        ('Απασχόληση', {
-            'fields': ('hire_date', 'is_active', 'notes')
         }),
     )
 
