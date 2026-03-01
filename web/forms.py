@@ -512,36 +512,60 @@ class DriverComplianceForm(TailwindFormMixin, forms.ModelForm):
 
     def save(self, commit=True):
         """
-        Σώζει το instance + εφαρμόζει το single-select ADR πάνω στο M2M adr_categories.
+        Σώζει το instance.
+        CRITICAL: Do NOT call _apply_adr_single_select here!
+        It will be called by save_m2m() which is the proper place for M2M operations.
         """
         instance = super().save(commit=commit)
-
-        # Αν commit=False, ο caller θα κάνει save() και μετά θα καλέσει form.save_m2m().
-        # Εδώ όμως θέλουμε να είμαστε deterministically σωστοί:
-        # - Αν commit=True: κάνουμε m2m set εδώ.
-        # - Αν commit=False: θα γίνει set στο save_m2m override παρακάτω.
-        if commit:
-            self._apply_adr_single_select(instance)
-
         return instance
 
     def save_m2m(self):
+        """
+        Override save_m2m to ensure ADR single-select is applied
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"[SAVE_M2M] Called. Instance pk: {self.instance.pk}")
+        logger.info(f"[SAVE_M2M] Before super().save_m2m()")
+        
         super().save_m2m()
-        self._apply_adr_single_select(self.instance)
+        
+        logger.info(f"[SAVE_M2M] After super().save_m2m()")
+        logger.info(f"[SAVE_M2M] ADR count before _apply_adr_single_select: {self.instance.adr_categories.count()}")
+        
+        # Apply ADR single-select after all M2M are saved
+        if self.instance.pk:
+            self._apply_adr_single_select(self.instance)
+            
+        logger.info(f"[SAVE_M2M] ADR count after _apply_adr_single_select: {self.instance.adr_categories.count()}")
 
     def _apply_adr_single_select(self, instance):
+        """
+        Apply single-select ADR category to M2M field
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         adr_category = self.cleaned_data.get("adr_category")
         adr_categories = self.cleaned_data.get("adr_categories")
 
+        logger.info(f"[ADR_SAVE] adr_category from form: {adr_category}")
+        logger.info(f"[ADR_SAVE] adr_categories from form: {adr_categories}")
+
         if adr_category:
+            logger.info(f"[ADR_SAVE] Setting adr_categories to [{adr_category}]")
             instance.adr_categories.set([adr_category])
+            logger.info(f"[ADR_SAVE] After set, count: {instance.adr_categories.count()}")
             return
 
         # Αν δεν υπάρχει adr_category, αλλά το form πήρε adr_categories (tests / legacy)
         if adr_categories is not None:
+            logger.info(f"[ADR_SAVE] Setting adr_categories from legacy field")
             instance.adr_categories.set(list(adr_categories))
             return
 
+        logger.info(f"[ADR_SAVE] Clearing adr_categories (no selection)")
         instance.adr_categories.clear()
 
 

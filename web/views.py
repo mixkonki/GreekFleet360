@@ -861,11 +861,33 @@ def driver_compliance_save(request, employee_id):
 
     if form.is_valid():
         logger.info(f"[DRIVER_COMPLIANCE_SAVE] Form is valid. Cleaned data: {form.cleaned_data}")
+        
+        # Save the instance
         obj = form.save(commit=False)
         obj.employee = employee
         obj.save()
+        
+        logger.info(f"[DRIVER_COMPLIANCE_SAVE] Before calling form.save_m2m()")
+        
+        # Save ManyToMany relations (license_categories)
         form.save_m2m()
+        
+        logger.info(f"[DRIVER_COMPLIANCE_SAVE] After calling form.save_m2m()")
+        
+        # CRITICAL FIX: Manually handle ADR single-select since save_m2m() override doesn't work
+        adr_category = form.cleaned_data.get("adr_category")
+        if adr_category:
+            logger.info(f"[DRIVER_COMPLIANCE_SAVE] Manually setting ADR to: {adr_category}")
+            obj.adr_categories.set([adr_category])
+            logger.info(f"[DRIVER_COMPLIANCE_SAVE] ADR set complete. Count: {obj.adr_categories.count()}")
+        else:
+            logger.info(f"[DRIVER_COMPLIANCE_SAVE] No ADR selected, clearing")
+            obj.adr_categories.clear()
+        
+        # Verify ADR was saved
+        adr_count = obj.adr_categories.count()
         logger.info(f"[DRIVER_COMPLIANCE_SAVE] Saved successfully. License expiry: {obj.license_expiry_date}")
+        logger.info(f"[DRIVER_COMPLIANCE_SAVE] Final ADR categories count: {adr_count}")
 
         # HTMX redirect
         if request.headers.get("HX-Request") == "true":
