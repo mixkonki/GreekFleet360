@@ -439,18 +439,24 @@ class DriverComplianceForm(TailwindFormMixin, forms.ModelForm):
 
         # 5) Αν υπάρχει ήδη ADR επιλογή, κάνε prefill το single-select
         # FIX: Set initial value from existing instance
+        # CRITICAL: Must reload from DB to get M2M data
         if instance and instance.pk:
             try:
+                # Reload instance from DB to ensure M2M is loaded
+                from core.driver_compliance_models import DriverCompliance
+                fresh_instance = DriverCompliance.objects.prefetch_related('adr_categories').get(pk=instance.pk)
+                
                 # Get first ADR category if exists
-                first_adr = instance.adr_categories.first()
+                first_adr = fresh_instance.adr_categories.first()
                 if first_adr:
                     # Set initial to the pk
                     self.fields["adr_category"].initial = first_adr.pk
-                    # ALSO set the bound data if this is a GET request (not POST)
-                    if not self.data:
-                        self.initial["adr_category"] = first_adr.pk
-            except Exception:
-                pass
+                    # ALSO set in self.initial dict
+                    self.initial["adr_category"] = first_adr.pk
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to load ADR category initial: {e}")
 
     # -------------------------
     # HARD VALIDATIONS
