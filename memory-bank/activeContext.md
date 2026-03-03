@@ -1,13 +1,48 @@
 # Active Context — GreekFleet 360
 
 ## Τρέχουσα Εστίαση
-**Ημερομηνία:** 2026-02-21  
-**Branch:** `feature/jwt-auth`  
-**Τελευταία εργασία:** JWT Authentication Layer (Phase 10) — ΟΛΟΚΛΗΡΩΘΗΚΕ ✅
+**Ημερομηνία:** 2026-03-03  
+**Branch:** `main`  
+**Τελευταία εργασία:** Driver Compliance ADR Category Fix — ΟΛΟΚΛΗΡΩΘΗΚΕ ✅
 
 ---
 
-## Πρόσφατες Αλλαγές (feature/jwt-auth branch)
+## Πρόσφατες Αλλαγές (Μάρτιος 2026)
+
+### 🔧 Driver Compliance ADR Category Fix (2026-03-01 → 2026-03-03)
+**Commits:** `b0202f1`, `c56e6f1`, `067b10f`, `71669b0`, `bf50e59`
+
+**Πρόβλημα:**
+- Η κατηγορία ADR επιλεγόταν από το dropdown αλλά ΔΕΝ αποθηκευόταν στη βάση
+- Όταν ξανάνοιγες τη φόρμα, το dropdown ήταν κενό
+- Τα logs έδειχναν `adr_category: Π5` στα cleaned_data αλλά η βάση είχε `adr_categories: []`
+
+**Ρίζα Προβλήματος:**
+- Το `save_m2m()` override στο `DriverComplianceForm` **δεν εκτελούνταν ποτέ**
+- Το `_apply_adr_single_select()` καλούνταν από `save()` αλλά το M2M.set() δεν γραφόταν στη βάση
+- Το transaction commit γινόταν μετά το `save()` οπότε οι αλλαγές χάνονταν
+
+**Λύση:**
+1. Αφαιρέθηκε η κλήση `_apply_adr_single_select()` από το `save()` method
+2. Μεταφέρθηκε η λογική αποθήκευσης ADR **απευθείας στο view** (`driver_compliance_save`)
+3. Τώρα το ADR αποθηκεύεται μετά το `form.save_m2m()` με manual `obj.adr_categories.set([adr_category])`
+4. Προστέθηκε `prefetch_related('adr_categories')` στο `driver_compliance_form` view για σωστό populate
+
+**Αρχεία που Άλλαξαν:**
+- `web/forms.py`: Simplified `save()`, kept `save_m2m()` with logging
+- `web/views.py`: Manual ADR save in `driver_compliance_save`, prefetch in `driver_compliance_form`
+- `web/templates/partials/driver_compliance_modal.html`: ADR section με single-select dropdown
+- `tests/test_driver_compliance_ui.py`: UI regression tests
+- `core/migrations/0012_fix_adr_categories.py`: Migration για ADR data
+
+**Αποτέλεσμα:**
+✅ ADR category αποθηκεύεται σωστά στη βάση  
+✅ ADR category εμφανίζεται σωστά όταν ξανανοίγεις τη φόρμα  
+✅ Single-select UX διατηρείται (μόνο μία κατηγορία ADR ανά οδηγό)
+
+---
+
+## Πρόσφατες Αλλαγές (Φεβρουάριος 2026 - feature/jwt-auth branch)
 
 ### Commit: `b84eb89` — feat(auth): JWT authentication layer v1.0
 - Προστέθηκε `djangorestframework-simplejwt` v5.5.1

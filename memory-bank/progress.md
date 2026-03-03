@@ -104,6 +104,27 @@
 - `AnalyticsPermission` class (RBAC scaffold)
 - 20 JWT auth tests (ALL PASSING)
 
+### ✅ Phase 11: Driver Compliance UI & ADR Management (2026-03-01)
+- Driver Compliance modal με HTMX integration
+- ADR category single-select dropdown (Π1-Π9)
+- License categories multi-select (A, B, C, CE, D, DE, etc.)
+- PEI (truck/bus) expiry tracking
+- Tachograph card validation
+- Hard-block validation στο TransportOrderForm:
+  - BUS requires D/DE license + PEI bus + tachograph
+  - TRUCK requires C/CE license + PEI truck + tachograph
+  - VAN requires B license minimum
+  - ADR validation για dangerous goods orders
+- UI regression tests (test_driver_compliance_ui.py)
+- Validation tests (test_driver_compliance_validation.py)
+
+### ✅ Phase 11.1: ADR Category Persistence Fix (2026-03-01 → 2026-03-03)
+- **Problem:** ADR category selected but not saved to database
+- **Root Cause:** save_m2m() override not executing, M2M.set() in save() lost on commit
+- **Solution:** Moved ADR save logic to view (manual set after form.save_m2m())
+- **Files Changed:** web/forms.py, web/views.py
+- **Result:** ADR now saves and displays correctly ✅
+
 ---
 
 ## Τι ΔΕΝ Έχει Υλοποιηθεί
