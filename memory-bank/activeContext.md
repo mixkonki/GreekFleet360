@@ -184,8 +184,10 @@ def expense_delete(request, expense_id):
 ---
 
 ## Σημειώσεις για Επόμενη Συνεδρία
-1. Το Memory Bank δημιουργήθηκε σήμερα (2026-02-21) — πρώτη φορά
+1. Το Memory Bank δημιουργήθηκε στις 2026-02-21 — ενημερώθηκε 2026-03-03
 2. Το project είναι σε πολύ καλή κατάσταση — production-ready αρχιτεκτονικά
-3. Το επόμενο λογικό βήμα είναι merge → main και deployment readiness
-4. Σήμερα διορθώθηκαν 3 issues: vehicle search bug, userprofile inconsistency, settings 403 enforcement
-5. Test suite: 136 tests (133 + 3 νέα) — ALL PASSING (αναμένεται)
+3. **ADR Category Fix ολοκληρώθηκε** - 5 commits, πλήρης τεκμηρίωση στο ADR_CATEGORY_FIX_REPORT.md
+4. **Cost/Revenue Audit ολοκληρώθηκε** - Πλήρης ανάλυση στο COST_REVENUE_ARCHITECTURE_AUDIT.md
+5. **Κρίσιμο Εύρημα:** Dual cost systems (CompanyExpense vs CostPosting) - χρειάζεται unification
+6. **Επόμενο Βήμα:** Σχεδιασμός cost allocation redesign με βάση το audit
+7. Test suite: 136+ tests — ALL PASSING (αναμένεται)
